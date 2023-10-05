@@ -1,7 +1,7 @@
 use crate::activity::Activity;
-use crate::athlete::Measurements;
-use crate::metrics::{Altitude, AltitudeDiff, Average, HeartRate, Power, Speed, Work};
-use chrono::{DateTime, Duration, Local, NaiveDate};
+use crate::athlete::MeasurementRecords;
+use crate::measurements::{Altitude, AltitudeDiff, Average, HeartRate, Power, Speed, Work};
+use chrono::{Duration, NaiveDate};
 
 #[derive(Debug)]
 pub struct ActivityAnalysis {
@@ -22,37 +22,30 @@ pub struct ActivityAnalysis {
 }
 
 impl ActivityAnalysis {
-    pub fn from_activity(measurements: &Measurements, activity: &Activity) -> Self {
+    pub fn from_activity(measurements: &MeasurementRecords, activity: &Activity) -> Self {
         let date: Option<NaiveDate> = activity.start_time.map(|t| t.naive_utc().into());
         let ftp = date.and_then(|d| measurements.get_actual_ftp(&d));
         let fthr = date.and_then(|d| measurements.get_actual_fthr(&d));
 
-        let power_data = activity.get_data_with_timestamps("power");
-        let power_only: Vec<Power> = power_data.iter().map(|(p, _)| *p).collect();
+        let power_data = activity.get_data("power");
+        let heart_rate_data = activity.get_data("heart_rate");
+        let speed_data = activity.get_data("speed");
+        let altitude_data = activity.get_data("altitude");
 
-        let heart_rate_data = activity.get_data_with_timestamps("heart_rate");
-        let heart_rate_only: Vec<HeartRate> = heart_rate_data.iter().map(|(hr, _)| *hr).collect();
+        let average_power = Average::average(&power_data);
+        let maximum_power = power_data.iter().max().copied();
 
-        let speed_data = activity.get_data_with_timestamps("speed");
-        let speed_only: Vec<Speed> = speed_data.iter().map(|(sp, _)| *sp).collect();
+        let average_heart_rate = Average::average(&heart_rate_data);
+        let maximum_heart_rate = heart_rate_data.iter().max().copied();
 
-        let altitude_data = activity.get_data_with_timestamps("altitude");
-        let altitude_only: Vec<Altitude> = altitude_data.iter().map(|(alt, _)| *alt).collect();
-
-        let average_power = Average::average(&power_only);
-        let maximum_power = power_only.iter().max().copied();
-
-        let average_heart_rate = Average::average(&heart_rate_only);
-        let maximum_heart_rate = heart_rate_only.iter().max().copied();
-
-        let average_speed = Average::average(&speed_only);
-        let maximum_speed = speed_only
+        let average_speed = Average::average(&speed_data);
+        let maximum_speed = speed_data
             .iter()
             .max_by(|Speed(x), Speed(y)| x.total_cmp(y))
             .copied();
 
         let total_work = calc_total_work(&power_data);
-        let normalized_power = calc_normalized_power(&power_only);
+        let normalized_power = calc_normalized_power(&power_data);
         let intensity_factor = match (ftp, normalized_power) {
             (Some(ftp), Some(normalized_power)) => {
                 Some(calc_intensity_factor(&ftp, &normalized_power))
@@ -65,14 +58,14 @@ impl ActivityAnalysis {
             }
             _ => None,
         };
-        let tss = match (ftp, activity.duration, normalized_power) {
+        let tss = match (ftp, &activity.duration, &normalized_power) {
             (Some(ftp), Some(duration), Some(normalized_power)) => {
                 Some(calc_tss(&ftp, &duration, &normalized_power))
             }
             _ => None,
         };
-        let hr_tss = fthr.map(|fthr| calc_hr_tss(&fthr, &heart_rate_only));
-        let (elevation_gain, elevation_loss) = calc_altitude_changes(altitude_only);
+        let hr_tss = fthr.map(|fthr| calc_hr_tss(&fthr, &heart_rate_data));
+        let (elevation_gain, elevation_loss) = calc_altitude_changes(&altitude_data);
 
         Self {
             total_work,
@@ -93,18 +86,18 @@ impl ActivityAnalysis {
     }
 }
 
-pub fn calc_total_work(power_data: &Vec<(Power, &DateTime<Local>)>) -> Work {
-    Work(power_data.iter().map(|(Power(power), _)| *power).sum())
+pub fn calc_total_work(power_data: &Vec<Power>) -> Work {
+    power_data.into_iter().map(|power| Work::from(*power)).sum()
 }
 
-pub fn calc_normalized_power(power_only: &Vec<Power>) -> Option<Power> {
+pub fn calc_normalized_power(power_data: &Vec<Power>) -> Option<Power> {
     // Returning simple average, if data size doesn't hit threshold
-    if power_only.len() < 30 {
-        return Average::average(power_only);
+    if power_data.len() < 30 {
+        return Average::average(power_data);
     }
 
     let avg: i64 = Average::average(
-        rolling_averages(power_only, 30)
+        rolling_averages(power_data, 30)
             .iter()
             .map(|Power(x)| x.pow(4))
             .collect::<Vec<i64>>(),
@@ -211,14 +204,14 @@ pub fn calc_hr_tss(fthr: &HeartRate, heart_rate_data: &Vec<HeartRate>) -> i64 {
 }
 
 pub fn calc_altitude_changes(
-    altitude_only: Vec<Altitude>,
+    altitude_data: &Vec<Altitude>,
 ) -> (Option<AltitudeDiff>, Option<AltitudeDiff>) {
     let init: (
         Option<AltitudeDiff>,
         Option<AltitudeDiff>,
         Option<&Altitude>,
     ) = (None, None, None);
-    let (gain, loss, _) = altitude_only.iter().fold(
+    let (gain, loss, _) = altitude_data.iter().fold(
         init,
         |(acc_gain, acc_loss, prev_alt), next_alt| match prev_alt {
             None => (acc_gain, acc_loss, Some(next_alt)),
@@ -248,36 +241,29 @@ pub fn calc_altitude_changes(
 #[cfg(test)]
 mod test {
     use super::*;
-    use chrono::{DateTime, Duration, Local};
 
     #[test]
     /// Don't panic on small data (less than 30 seconds)
     fn small_data() {
-        let power_data: Vec<(Power, DateTime<Local>)> = vec![
-            (Power(200), "2012-12-12 12:12:12Z".parse().unwrap()),
-            (Power(200), "2012-12-12 12:12:13Z".parse().unwrap()),
-            (Power(200), "2012-12-12 12:12:14Z".parse().unwrap()),
-            (Power(200), "2012-12-12 12:12:15Z".parse().unwrap()),
-        ];
-        let power_data = power_data.iter().map(|(p, t)| (*p, t)).collect();
+        let power_data: Vec<Power> = vec![Power(200), Power(200), Power(200), Power(200)];
 
-        assert_eq!(calc_normalized_power(&power_data), Power(200));
+        assert_eq!(calc_normalized_power(&power_data), Some(Power(200)));
     }
 
     #[test]
     /// Constant effort NP should be equal to average power
     fn constant_effort() {
-        let power_data: Vec<(Power, DateTime<Local>)> = (0..3600)
-            .map(|s| {
-                (
-                    Power(200),
-                    "2012-12-12 12:12:12Z".parse::<DateTime<Local>>().unwrap()
-                        + Duration::seconds(s),
-                )
-            })
-            .collect();
-        let power_data = power_data.iter().map(|(p, t)| (*p, t)).collect();
+        // TODO: implement and test intermittent data
+        // let power_data: Vec<(Power, DateTime<Local>)> = (0..3600)
+        //     .map(|s| {
+        //         (
+        //             Power(200),
+        //             "2012-12-12 12:12:12Z".parse::<DateTime<Local>>().unwrap()
+        //                 + Duration::seconds(s),
+        //         )
+        //     })
+        let power_data: Vec<Power> = (0..3600).map(|_| Power(200)).collect();
 
-        assert_eq!(calc_normalized_power(&power_data), Power(200));
+        assert_eq!(calc_normalized_power(&power_data), Some(Power(200)));
     }
 }

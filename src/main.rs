@@ -1,7 +1,7 @@
 use crate::activity::Activity;
 use crate::activity_analysis::ActivityAnalysis;
-use crate::athlete::{Measurement, Measurements};
-use crate::metrics::{HeartRate, Power, Weight};
+use crate::athlete::{MeasurementRecord, MeasurementRecords};
+use crate::measurements::{HeartRate, Power, Weight};
 use chrono::NaiveDate;
 use fitparser::{self, Error};
 use std::fs::File;
@@ -9,21 +9,22 @@ use std::fs::File;
 pub mod activity;
 pub mod activity_analysis;
 pub mod athlete;
-pub mod metrics;
+pub mod measurements;
+pub mod peak;
 
 fn main() -> Result<(), Error> {
-    let measurements = Measurements::new([
+    let measurements = MeasurementRecords::new([
         (
             NaiveDate::from_ymd_opt(2022, 4, 20).unwrap(),
-            Measurement::FTP(Power(260)),
+            MeasurementRecord::FTP(Power(260)),
         ),
         (
             NaiveDate::from_ymd_opt(2022, 4, 20).unwrap(),
-            Measurement::FTHr(HeartRate(178)),
+            MeasurementRecord::FTHr(HeartRate(178)),
         ),
         (
             NaiveDate::from_ymd_opt(2022, 4, 20).unwrap(),
-            Measurement::Weight(Weight(70.0)),
+            MeasurementRecord::Weight(Weight(70.0)),
         ),
     ]);
 

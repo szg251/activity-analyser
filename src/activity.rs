@@ -1,4 +1,4 @@
-use crate::metrics::Power;
+use crate::measurements::Power;
 use chrono::{DateTime, Duration, Local};
 use fitparser::profile::field_types::MesgNum;
 use fitparser::{self, Error, FitDataRecord, Value};
@@ -42,56 +42,79 @@ impl Activity {
         Self::from_bytes(&buffer)
     }
 
-    pub fn find_one_value(self: &Self, mesg_num: &MesgNum, field_name: &str) -> Option<&Value> {
+    fn find_one_value(self: &Self, mesg_num: &MesgNum, field_name: &str) -> Option<&Value> {
         find_one_value(&self.records, mesg_num, field_name)
     }
 
-    pub fn find_many_values(
+    fn find_many_values(self: &Self, mesg_num: &MesgNum, field_name: &str) -> Vec<&Value> {
+        self.records
+            .iter()
+            .filter_map(|record| {
+                if record.kind() == *mesg_num {
+                    Some(record.fields())
+                } else {
+                    None
+                }
+            })
+            .filter_map(|fields| {
+                let value = fields
+                    .iter()
+                    .find(|field| field.name() == field_name)?
+                    .value();
+
+                Some(value)
+            })
+            .collect()
+    }
+
+    fn find_many_values_with_timestamps(
         self: &Self,
         mesg_num: &MesgNum,
         field_name: &str,
     ) -> Vec<(&Value, &DateTime<Local>)> {
-        find_many_values(&self.records, mesg_num, field_name)
+        self.records
+            .iter()
+            .filter_map(|record| {
+                if record.kind() == *mesg_num {
+                    Some(record.fields())
+                } else {
+                    None
+                }
+            })
+            .filter_map(|fields| {
+                let value = fields
+                    .iter()
+                    .find(|field| field.name() == field_name)?
+                    .value();
+
+                let timestamp = fields
+                    .iter()
+                    .find(|field| field.name() == "timestamp")?
+                    .value();
+                Some((value, get_timestamp(timestamp)?))
+            })
+            .collect()
+    }
+
+    pub fn get_data<T>(self: &Self, field_name: &str) -> Vec<T>
+    where
+        T: TryFrom<Value>,
+    {
+        self.find_many_values(&MesgNum::Record, field_name)
+            .iter()
+            .filter_map(|v| Some((*v).clone().try_into().ok()?))
+            .collect()
     }
 
     pub fn get_data_with_timestamps<T>(self: &Self, field_name: &str) -> Vec<(T, &DateTime<Local>)>
     where
         T: TryFrom<Value>,
     {
-        self.find_many_values(&MesgNum::Record, field_name)
+        self.find_many_values_with_timestamps(&MesgNum::Record, field_name)
             .iter()
             .filter_map(|(v, t)| Some(((*v).clone().try_into().ok()?, *t)))
             .collect()
     }
-}
-
-fn find_many_values<'a>(
-    records: &'a Vec<FitDataRecord>,
-    mesg_num: &MesgNum,
-    field_name: &str,
-) -> Vec<(&'a Value, &'a DateTime<Local>)> {
-    records
-        .iter()
-        .filter_map(|record| {
-            if record.kind() == *mesg_num {
-                Some(record.fields())
-            } else {
-                None
-            }
-        })
-        .filter_map(|fields| {
-            let value = fields
-                .iter()
-                .find(|field| field.name() == field_name)?
-                .value();
-
-            let timestamp = fields
-                .iter()
-                .find(|field| field.name() == "timestamp")?
-                .value();
-            Some((value, get_timestamp(timestamp)?))
-        })
-        .collect()
 }
 
 fn find_one_value<'a>(
@@ -137,9 +160,9 @@ fn get_timestamp<'a>(value: &'a Value) -> Option<&'a DateTime<Local>> {
 }
 
 fn find_duration(records: &Vec<FitDataRecord>) -> Option<Duration> {
-    let total_moving_time = find_one_value(records, &MesgNum::Session, "total_moving_time");
-    let total_elapsed_time = find_one_value(records, &MesgNum::Session, "total_elapsed_time");
-    let total_timer_time = find_one_value(records, &MesgNum::Session, "total_timer_time");
+    let total_moving_time = find_one_value(&records, &MesgNum::Session, "total_moving_time");
+    let total_elapsed_time = find_one_value(&records, &MesgNum::Session, "total_elapsed_time");
+    let total_timer_time = find_one_value(&records, &MesgNum::Session, "total_timer_time");
 
     let duration: f64 = total_moving_time
         .or(total_elapsed_time)

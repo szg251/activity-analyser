@@ -1,8 +1,10 @@
-use derive_more::{Add, Sub};
+use chrono::{DateTime, Local};
+use derive_more::{Add, Sub, Sum};
 use fitparser::{Error, Value};
 
+pub type TimedMeasurements<'a, T> = Vec<(T, &'a DateTime<Local>)>;
+
 pub trait Average<A = Self>: Sized {
-    // Required method
     fn average<I>(elems: I) -> Option<Self>
     where
         I: AsRef<[A]>;
@@ -45,6 +47,22 @@ impl Average for Power {
         } else {
             None
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Add, Sub, Sum)]
+pub struct Work(pub i64);
+
+impl TryFrom<Value> for Work {
+    type Error = Error;
+    fn try_from(value: Value) -> Result<Self, Error> {
+        Ok(Self(value.try_into()?))
+    }
+}
+
+impl From<Power> for Work {
+    fn from(value: Power) -> Work {
+        Work(value.0)
     }
 }
 
@@ -118,7 +136,7 @@ impl TryFrom<Value> for Altitude {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Sub, Add)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Sub, Add, Sum)]
 pub struct AltitudeDiff(pub f64);
 
 impl TryFrom<Value> for AltitudeDiff {
@@ -131,16 +149,6 @@ impl TryFrom<Value> for AltitudeDiff {
 impl From<Altitude> for AltitudeDiff {
     fn from(value: Altitude) -> AltitudeDiff {
         AltitudeDiff(value.0)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Work(pub i64);
-
-impl TryFrom<Value> for Work {
-    type Error = Error;
-    fn try_from(value: Value) -> Result<Self, Error> {
-        Ok(Self(value.try_into()?))
     }
 }
 

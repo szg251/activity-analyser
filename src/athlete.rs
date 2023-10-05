@@ -1,13 +1,13 @@
-use crate::metrics::{HeartRate, Power, Weight};
+use crate::measurements::{HeartRate, Power, Weight};
 use chrono::NaiveDate;
 
-pub struct Measurements(Vec<(NaiveDate, Measurement)>);
+pub struct MeasurementRecords(Vec<(NaiveDate, MeasurementRecord)>);
 
-impl Measurements {
+impl MeasurementRecords {
     // Create a new sorted list of measurements
     pub fn new<T>(mut measurements: T) -> Self
     where
-        T: AsMut<[(NaiveDate, Measurement)]>,
+        T: AsMut<[(NaiveDate, MeasurementRecord)]>,
     {
         let measurements = measurements.as_mut();
         measurements.sort_by(|(a, _), (b, _)| a.cmp(b));
@@ -15,18 +15,18 @@ impl Measurements {
     }
 
     pub fn get_actual_ftp(self: &Self, date: &NaiveDate) -> Option<Power> {
-        self.get_actual(date, Measurement::get_ftp)
+        self.get_actual(date, MeasurementRecord::get_ftp)
     }
 
     pub fn get_actual_fthr(self: &Self, date: &NaiveDate) -> Option<HeartRate> {
-        self.get_actual(date, Measurement::get_fthr)
+        self.get_actual(date, MeasurementRecord::get_fthr)
     }
 
     fn get_actual<T, F>(self: &Self, date: &NaiveDate, getter: F) -> Option<T>
     where
-        F: Fn(&Measurement) -> Option<T>,
+        F: Fn(&MeasurementRecord) -> Option<T>,
     {
-        let Measurements(measurements) = self;
+        let MeasurementRecords(measurements) = self;
         let m = measurements
             .iter()
             .filter_map(|(d, m)| Some((*d, getter(m)?)))
@@ -37,13 +37,13 @@ impl Measurements {
 }
 
 #[derive(Clone)]
-pub enum Measurement {
+pub enum MeasurementRecord {
     FTP(Power),
     FTHr(HeartRate),
     Weight(Weight),
 }
 
-impl Measurement {
+impl MeasurementRecord {
     pub fn get_ftp(self: &Self) -> Option<Power> {
         match self {
             Self::FTP(power) => Some(*power),
@@ -65,18 +65,18 @@ mod test {
 
     #[test]
     fn find_ftp() {
-        let measurements = Measurements::new([
+        let measurements = MeasurementRecords::new([
             (
                 NaiveDate::from_ymd_opt(2022, 7, 8).unwrap(),
-                Measurement::FTP(Power(200)),
+                MeasurementRecord::FTP(Power(200)),
             ),
             (
                 NaiveDate::from_ymd_opt(2022, 8, 8).unwrap(),
-                Measurement::FTP(Power(210)),
+                MeasurementRecord::FTP(Power(210)),
             ),
             (
                 NaiveDate::from_ymd_opt(2022, 9, 8).unwrap(),
-                Measurement::FTP(Power(220)),
+                MeasurementRecord::FTP(Power(220)),
             ),
         ]);
         assert_eq!(
