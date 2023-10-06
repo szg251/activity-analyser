@@ -1,8 +1,5 @@
-use chrono::{DateTime, Local};
 use derive_more::{Add, Sub, Sum};
 use fitparser::{Error, Value};
-
-pub type TimedMeasurements<'a, T> = Vec<(T, &'a DateTime<Local>)>;
 
 pub trait Average<A = Self>: Sized {
     fn average<I>(elems: I) -> Option<Self>
