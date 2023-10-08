@@ -1,5 +1,7 @@
 use derive_more::{Add, Sub, Sum};
 use fitparser::{Error, Value};
+use std::cmp::Ordering;
+use std::fmt::{Display, Formatter};
 
 pub trait Average<A = Self>: Sized {
     fn average<I>(elems: I) -> Option<Self>
@@ -24,6 +26,12 @@ impl Average for i64 {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Power(pub i64);
+
+impl Display for Power {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{} W", self.0)
+    }
+}
 
 impl TryFrom<Value> for Power {
     type Error = Error;
@@ -50,6 +58,12 @@ impl Average for Power {
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Add, Sub, Sum)]
 pub struct Work(pub f64);
 
+impl Display for Work {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:.2} kJ", self.0)
+    }
+}
+
 impl TryFrom<Value> for Work {
     type Error = Error;
     fn try_from(value: Value) -> Result<Self, Error> {
@@ -65,6 +79,12 @@ impl From<Power> for Work {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HeartRate(pub i64);
+
+impl Display for HeartRate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{} BPM", self.0)
+    }
+}
 
 impl TryFrom<Value> for HeartRate {
     type Error = Error;
@@ -91,6 +111,12 @@ impl Average for HeartRate {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cadence(pub i64);
 
+impl Display for Cadence {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{} RPM", self.0)
+    }
+}
+
 impl TryFrom<Value> for Cadence {
     type Error = Error;
     fn try_from(value: Value) -> Result<Self, Error> {
@@ -100,6 +126,21 @@ impl TryFrom<Value> for Cadence {
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Speed(pub f64);
+
+impl Display for Speed {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{} km/h", self.0)
+    }
+}
+
+impl Eq for Speed {}
+
+impl Ord for Speed {
+    /// Boldly we claim that floats are always comparable.
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
 
 impl TryFrom<Value> for Speed {
     type Error = Error;
@@ -126,6 +167,12 @@ impl Average for Speed {
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Altitude(pub f64);
 
+impl Display for Altitude {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{} m", self.0)
+    }
+}
+
 impl TryFrom<Value> for Altitude {
     type Error = Error;
     fn try_from(value: Value) -> Result<Self, Error> {
@@ -135,6 +182,12 @@ impl TryFrom<Value> for Altitude {
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Sub, Add, Sum)]
 pub struct AltitudeDiff(pub f64);
+
+impl Display for AltitudeDiff {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{} m", self.0)
+    }
+}
 
 impl TryFrom<Value> for AltitudeDiff {
     type Error = Error;
@@ -174,6 +227,12 @@ pub struct Position(pub PositionLat, pub PositionLong);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Weight(pub f64);
+
+impl Display for Weight {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{} kg", self.0)
+    }
+}
 
 impl TryFrom<Value> for Weight {
     type Error = Error;

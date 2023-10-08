@@ -1,7 +1,9 @@
 use crate::activity::Activity;
 use crate::athlete::MeasurementRecords;
 use crate::measurements::{Altitude, AltitudeDiff, Average, HeartRate, Power, Speed, Work};
-use chrono::{Duration, NaiveDate};
+use crate::peak::Peak;
+use chrono::{DateTime, Duration, Local, NaiveDate};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug)]
 pub struct ActivityAnalysis {
@@ -19,17 +21,37 @@ pub struct ActivityAnalysis {
     pub maximum_speed: Option<Speed>,
     pub elevation_gain: Option<AltitudeDiff>,
     pub elevation_loss: Option<AltitudeDiff>,
+    pub peak_performances: PeakPerformances,
 }
 
 impl ActivityAnalysis {
-    pub fn from_activity(measurements: &MeasurementRecords, activity: &Activity) -> Self {
+    pub fn from_activity(
+        measurement_records: &MeasurementRecords,
+        activity: &Activity,
+        peak_durations: HashSet<Duration>,
+    ) -> Self {
         let date: Option<NaiveDate> = activity.start_time.map(|t| t.naive_utc().into());
-        let ftp = date.and_then(|d| measurements.get_actual_ftp(&d));
-        let fthr = date.and_then(|d| measurements.get_actual_fthr(&d));
+        let ftp = date.and_then(|d| measurement_records.get_actual_ftp(&d));
+        let fthr = date.and_then(|d| measurement_records.get_actual_fthr(&d));
 
-        let power_data = activity.get_data("power");
-        let heart_rate_data = activity.get_data("heart_rate");
-        let speed_data = activity.get_data("speed");
+        let power_data_with_timestamps = activity.get_data_with_timestamps("power");
+        let power_data = power_data_with_timestamps
+            .iter()
+            .map(|t| t.0)
+            .collect::<Vec<_>>();
+
+        let heart_rate_data_with_timestamps = activity.get_data_with_timestamps("heart_rate");
+        let heart_rate_data = heart_rate_data_with_timestamps
+            .iter()
+            .map(|t| t.0)
+            .collect::<Vec<_>>();
+
+        let speed_data_with_timestamps = activity.get_data_with_timestamps("speed");
+        let speed_data = speed_data_with_timestamps
+            .iter()
+            .map(|t| t.0)
+            .collect::<Vec<_>>();
+
         let altitude_data = activity.get_data("altitude");
 
         let average_power = Average::average(&power_data);
@@ -67,6 +89,13 @@ impl ActivityAnalysis {
         let hr_tss = fthr.map(|fthr| calc_hr_tss(&fthr, &heart_rate_data));
         let (elevation_gain, elevation_loss) = calc_altitude_changes(&altitude_data);
 
+        let peak_performances = PeakPerformances::from_data(
+            &power_data_with_timestamps,
+            &heart_rate_data_with_timestamps,
+            &speed_data_with_timestamps,
+            &peak_durations,
+        );
+
         Self {
             total_work,
             normalized_power,
@@ -82,6 +111,7 @@ impl ActivityAnalysis {
             maximum_speed,
             elevation_gain,
             elevation_loss,
+            peak_performances,
         }
     }
 }
@@ -236,6 +266,45 @@ pub fn calc_altitude_changes(
     );
 
     (gain, loss)
+}
+
+#[derive(Debug)]
+pub struct PeakPerformances {
+    pub power: HashMap<Duration, Peak<Power>>,
+    pub heart_rate: HashMap<Duration, Peak<HeartRate>>,
+    pub speed: HashMap<Duration, Peak<Speed>>,
+}
+
+impl PeakPerformances {
+    pub fn from_data(
+        power_data: &Vec<(Power, &DateTime<Local>)>,
+        heart_rate_data: &Vec<(HeartRate, &DateTime<Local>)>,
+        speed_data: &Vec<(Speed, &DateTime<Local>)>,
+        peak_durations: &HashSet<Duration>,
+    ) -> Self {
+        Self {
+            power: Self::get_one(power_data, &peak_durations),
+            heart_rate: Self::get_one(heart_rate_data, &peak_durations),
+            speed: Self::get_one(speed_data, &peak_durations),
+        }
+    }
+    fn get_one<T>(
+        data_with_timestamps: &Vec<(T, &DateTime<Local>)>,
+        peak_durations: &HashSet<Duration>,
+    ) -> HashMap<Duration, Peak<T>>
+    where
+        T: Ord + Average + Copy,
+    {
+        peak_durations
+            .iter()
+            .filter_map(|duration| {
+                Some((
+                    duration.clone(),
+                    Peak::from_measurement_records(data_with_timestamps, *duration)?,
+                ))
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]

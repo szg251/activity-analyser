@@ -2,9 +2,11 @@ use activity_analyser::activity::Activity;
 use activity_analyser::activity_analysis::ActivityAnalysis;
 use activity_analyser::athlete::{MeasurementRecord, MeasurementRecords};
 use activity_analyser::measurements::{HeartRate, Power, Weight};
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 use clap::Parser;
 use fitparser::{self, Error};
+use std::collections::HashSet;
+use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -42,6 +44,20 @@ fn main() -> Result<(), Error> {
     }
 }
 
+struct DisplayableOption<T>(Option<T>);
+
+impl<T> Display for DisplayableOption<T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match &self.0 {
+            Some(x) => T::fmt(&x, f),
+            None => write!(f, "-"),
+        }
+    }
+}
+
 fn single_activity(path: PathBuf) -> Result<(), Error> {
     let measurements = MeasurementRecords::new([
         (
@@ -64,8 +80,52 @@ fn single_activity(path: PathBuf) -> Result<(), Error> {
     );
     let mut fp = File::open(path)?;
     let activity = Activity::from_reader(&mut fp)?;
-    let activity_analysis = ActivityAnalysis::from_activity(&measurements, &activity);
-    println!("{:#?}", activity);
-    println!("{:#?}", activity_analysis);
+    let peak_durations = HashSet::from([
+        Duration::seconds(5),
+        Duration::minutes(1),
+        Duration::minutes(5),
+        Duration::minutes(20),
+    ]);
+    let activity_analysis =
+        ActivityAnalysis::from_activity(&measurements, &activity, peak_durations);
+
+    println!("Start time: {}", DisplayableOption(activity.start_time));
+    println!("Duration: {}", DisplayableOption(activity.duration));
+    println!(
+        "Average power: {}",
+        DisplayableOption(activity_analysis.average_power)
+    );
+    println!(
+        "Normalized power: {}",
+        DisplayableOption(activity_analysis.normalized_power)
+    );
+    println!(
+        "Variability Index: {:.2}",
+        DisplayableOption(activity_analysis.variability_index)
+    );
+    println!(
+        "Intensity Factor: {:.2}",
+        DisplayableOption(activity_analysis.intensity_factor)
+    );
+    println!("Total Work: {}", activity_analysis.total_work);
+    println!("TSS: {}", DisplayableOption(activity_analysis.tss));
+    println!("hrTSS: {}", DisplayableOption(activity_analysis.hr_tss));
+    println!(
+        "Elevation gain: {}",
+        DisplayableOption(activity_analysis.elevation_gain)
+    );
+    println!(
+        "Elevation loss: {}",
+        DisplayableOption(activity_analysis.elevation_loss)
+    );
     Ok(())
+
+    // -- when verbose $ print $ foldl' (\m k -> Map.lookup k =<< m) (Just activity.resolved) filterWords
+
+    // when verbose $ case filterWords of
+    //   [] -> pPrint activity.resolved
+    //   [k] -> pPrint $ Map.lookup k activity.resolved
+    //   k : k' : _ -> pPrint $ do
+    //     resolvedMsgs <- Map.lookup k activity.resolved
+    //     pure $ foldMap (\m -> catMaybes [Map.lookup k' m.fields, Map.lookup k' m.devFields]) resolvedMsgs
 }

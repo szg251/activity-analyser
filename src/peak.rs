@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use std::convert::identity;
 
 /// Peak of a given metric for a given amount of seconds
+#[derive(Debug)]
 pub struct Peak<T> {
     pub value: T,
     pub timestamps: TimeInterval,
@@ -46,8 +47,8 @@ impl<T> Peak<T>
 where
     T: Ord + Average + Copy,
 {
-    pub fn from_measurements(
-        measurements: Vec<(T, &DateTime<Local>)>,
+    pub fn from_measurement_records(
+        measurements: &Vec<(T, &DateTime<Local>)>,
         duration: Duration,
     ) -> Option<Self> {
         let windows = measurements.windows(duration.num_seconds() as usize);
