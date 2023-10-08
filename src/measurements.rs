@@ -129,7 +129,7 @@ pub struct Speed(pub f64);
 
 impl Display for Speed {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "{} km/h", self.0)
+        write!(f, "{:.2} km/h", self.0 * 3.6)
     }
 }
 

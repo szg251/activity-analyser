@@ -11,6 +11,7 @@ clap = { version = "4.4.6", features = ["derive"] }
 derive_more = "0.99.17"
 fitparser = "0.6.1"
 num-integer = "0.1.45"
+prettytable-rs = "0.10.0"
 
 [dev-dependencies]
 assertables = "7.0.1"

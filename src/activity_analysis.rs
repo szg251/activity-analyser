@@ -1,6 +1,7 @@
 use crate::activity::Activity;
 use crate::athlete::MeasurementRecords;
 use crate::measurements::{Altitude, AltitudeDiff, Average, HeartRate, Power, Speed, Work};
+use crate::metrics::TSS;
 use crate::peak::Peak;
 use chrono::{DateTime, Duration, Local, NaiveDate};
 use std::collections::{HashMap, HashSet};
@@ -11,8 +12,8 @@ pub struct ActivityAnalysis {
     pub normalized_power: Option<Power>,
     pub intensity_factor: Option<f64>,
     pub variability_index: Option<f64>,
-    pub tss: Option<i64>,
-    pub hr_tss: Option<i64>,
+    pub tss: Option<TSS>,
+    pub hr_tss: Option<TSS>,
     pub average_power: Option<Power>,
     pub maximum_power: Option<Power>,
     pub average_heart_rate: Option<HeartRate>,
@@ -28,7 +29,7 @@ impl ActivityAnalysis {
     pub fn from_activity(
         measurement_records: &MeasurementRecords,
         activity: &Activity,
-        peak_durations: HashSet<Duration>,
+        peak_durations: &HashSet<Duration>,
     ) -> Self {
         let date: Option<NaiveDate> = activity.start_time.map(|t| t.naive_utc().into());
         let ftp = date.and_then(|d| measurement_records.get_actual_ftp(&d));
@@ -46,7 +47,7 @@ impl ActivityAnalysis {
             .map(|t| t.0)
             .collect::<Vec<_>>();
 
-        let speed_data_with_timestamps = activity.get_data_with_timestamps("speed");
+        let speed_data_with_timestamps = activity.get_data_with_timestamps("enhanced_speed");
         let speed_data = speed_data_with_timestamps
             .iter()
             .map(|t| t.0)
@@ -169,17 +170,19 @@ where
         .collect()
 }
 
-pub fn calc_tss(ftp: &Power, duration: &Duration, normalized_power: &Power) -> i64 {
+pub fn calc_tss(ftp: &Power, duration: &Duration, normalized_power: &Power) -> TSS {
     let intensity_factor = calc_intensity_factor(ftp, normalized_power);
     let Power(ftp) = *ftp;
     let Power(normalized_power) = *normalized_power;
     let duration = duration.num_seconds() as f64;
 
-    (((duration * (normalized_power as f64) * intensity_factor) / (ftp as f64 * 3_600.0)) * 100.0)
-        as i64
+    TSS(
+        (((duration * (normalized_power as f64) * intensity_factor) / (ftp as f64 * 3_600.0))
+            * 100.0) as i64,
+    )
 }
 
-pub fn calc_hr_tss(fthr: &HeartRate, heart_rate_data: &Vec<HeartRate>) -> i64 {
+pub fn calc_hr_tss(fthr: &HeartRate, heart_rate_data: &Vec<HeartRate>) -> TSS {
     let HeartRate(fthr) = fthr;
     let zones = (
         fthr * 73 / 100,
@@ -221,7 +224,7 @@ pub fn calc_hr_tss(fthr: &HeartRate, heart_rate_data: &Vec<HeartRate>) -> i64 {
                 acc
             });
 
-    zones_count.0 * 20
+    TSS((zones_count.0 * 20
         + zones_count.1 * 30
         + zones_count.2 * 40
         + zones_count.3 * 50
@@ -230,7 +233,8 @@ pub fn calc_hr_tss(fthr: &HeartRate, heart_rate_data: &Vec<HeartRate>) -> i64 {
         + zones_count.6 * 100
         + zones_count.7 * 105
         + zones_count.8 * 110
-        + zones_count.9 * 120
+        + zones_count.9 * 120)
+        / 3600)
 }
 
 pub fn calc_altitude_changes(
@@ -341,19 +345,19 @@ mod activity_analysis_tests {
     #[test]
     fn one_hour_effort_tss() {
         let tss = calc_tss(&Power(260), &Duration::hours(1), &Power(260));
-        assert_eq!(tss, 100)
+        assert_eq!(tss, TSS(100))
     }
 
     #[test]
     fn ninety_minute_effort_tss() {
         let tss = calc_tss(&Power(260), &Duration::minutes(90), &Power(260));
-        assert_eq!(tss, 150)
+        assert_eq!(tss, TSS(150))
     }
 
     #[test]
     fn four_hour_effort_tss() {
         let tss = calc_tss(&Power(260), &Duration::hours(4), &Power(130));
-        assert_eq!(tss, 100)
+        assert_eq!(tss, TSS(100))
     }
 
     #[test]
@@ -424,6 +428,6 @@ mod activity_analysis_tests {
 
         let tss = calc_tss(&ftp, &activity.duration.unwrap(), &np);
 
-        assert_eq!(tss, 67);
+        assert_eq!(tss, TSS(67));
     }
 }

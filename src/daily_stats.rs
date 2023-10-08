@@ -1,33 +1,9 @@
+use crate::metrics::{ATL, CTL, TSB, TSS};
 use chrono::{Days, NaiveDate};
-use derive_more::{Add, AddAssign};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Debug)]
 pub struct DailyTSS(pub NaiveDate, pub TSS);
-
-#[derive(Clone, Debug)]
-pub struct SortedDailyTSS(Vec<DailyTSS>);
-
-#[derive(Clone, Debug)]
-pub struct DailyStats {
-    pub date: NaiveDate,
-    pub tss: TSS,
-    pub ctl: CTL,
-    pub atl: ATL,
-    pub tsb: TSB,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Add, AddAssign, Debug)]
-pub struct TSS(i64);
-
-#[derive(Clone, PartialEq, PartialOrd, Debug)]
-pub struct CTL(f64);
-
-#[derive(Clone, PartialEq, PartialOrd, Debug)]
-pub struct ATL(f64);
-
-#[derive(Clone, PartialEq, PartialOrd, Debug)]
-pub struct TSB(f64);
 
 /// Calculate training load with a given decay and impact constant
 fn calc_training_load(
@@ -57,144 +33,158 @@ pub fn calc_tsb(CTL(ctl): &CTL, ATL(atl): &ATL) -> TSB {
     TSB(ctl - atl)
 }
 
-pub fn calc_daily_stats(yesterdays_stats: &DailyStats, daily_tss: &DailyTSS) -> DailyStats {
-    let ctl = calc_ctl(&yesterdays_stats.ctl, daily_tss);
-    let atl = calc_atl(&yesterdays_stats.atl, daily_tss);
-    let tsb = calc_tsb(&ctl, &atl);
+#[derive(Clone, Debug)]
+pub struct DailyStats {
+    pub date: NaiveDate,
+    pub tss: TSS,
+    pub ctl: CTL,
+    pub atl: ATL,
+    pub tsb: TSB,
+}
 
-    let DailyTSS(date, tss) = daily_tss;
+impl DailyStats {
+    pub fn calc_next(yesterdays_stats: &DailyStats, daily_tss: &DailyTSS) -> DailyStats {
+        let ctl = calc_ctl(&yesterdays_stats.ctl, daily_tss);
+        let atl = calc_atl(&yesterdays_stats.atl, daily_tss);
+        let tsb = calc_tsb(&ctl, &atl);
 
-    DailyStats {
-        date: date.clone(),
-        ctl,
-        atl,
-        tsb,
-        tss: tss.clone(),
+        let DailyTSS(date, tss) = daily_tss;
+
+        DailyStats {
+            date: date.clone(),
+            ctl,
+            atl,
+            tsb,
+            tss: tss.clone(),
+        }
+    }
+
+    /// Calculating rolling daily statistics, starting from the last known point.
+    /// Any daily TSS before the last known point will be disregarded.
+    /// Daily TSS must be sorted, and there must not be any gaps between the days.
+    pub fn calc_rolling(
+        SortedDailyTSS(sorted_daily_tss): SortedDailyTSS,
+        last_known_stats: Option<&DailyStats>,
+    ) -> Vec<DailyStats> {
+        if sorted_daily_tss.is_empty() {
+            return Vec::new();
+        };
+
+        let DailyTSS(first_day, _) = sorted_daily_tss[0];
+        let DailyTSS(last_day, _) = sorted_daily_tss[sorted_daily_tss.len() - 1];
+
+        let ending_days = (1..).map(|days| DailyTSS(last_day + Days::new(days), TSS(0)));
+
+        let init = match last_known_stats {
+            Some(stats) => stats.clone(),
+            None => DailyStats {
+                date: first_day - Days::new(1),
+                tss: TSS(0),
+                ctl: CTL(0.0),
+                atl: ATL(0.0),
+                tsb: TSB(0.0),
+            },
+        };
+        let length = sorted_daily_tss.len();
+
+        sorted_daily_tss
+            .into_iter()
+            .chain(ending_days)
+            .enumerate()
+            .scan(init, |yesterdays_stats, (i, daily_tss)| {
+                let next_daily_stats = DailyStats::calc_next(&yesterdays_stats, &daily_tss);
+                *yesterdays_stats = next_daily_stats.clone();
+
+                if i < length + 1
+                    || next_daily_stats.ctl >= CTL(0.45)
+                    || next_daily_stats.atl >= ATL(0.45)
+                    || next_daily_stats.tsb >= TSB(0.45)
+                {
+                    Some(next_daily_stats)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 }
 
-/// Calculating rolling daily statistics, starting from the last known point.
-/// Any daily TSS before the last known point will be disregarded.
-/// Daily TSS must be sorted, and there must not be any gaps between the days.
-pub fn calc_rolling_daily_stats(
-    SortedDailyTSS(sorted_daily_tss): SortedDailyTSS,
-    last_known_stats: Option<&DailyStats>,
-) -> Vec<DailyStats> {
-    if sorted_daily_tss.is_empty() {
-        return Vec::new();
-    };
+#[derive(Clone, Debug)]
+pub struct SortedDailyTSS(Vec<DailyTSS>);
 
-    let DailyTSS(first_day, _) = sorted_daily_tss[0];
-    let DailyTSS(last_day, _) = sorted_daily_tss[sorted_daily_tss.len() - 1];
-
-    let ending_days = (1..300).map(|days| DailyTSS(last_day + Days::new(days), TSS(0)));
-
-    let init = match last_known_stats {
-        Some(stats) => stats.clone(),
-        None => DailyStats {
-            date: first_day - Days::new(1),
-            tss: TSS(0),
-            ctl: CTL(0.0),
-            atl: ATL(0.0),
-            tsb: TSB(0.0),
-        },
-    };
-    let length = sorted_daily_tss.len();
-
-    sorted_daily_tss
-        .into_iter()
-        .chain(ending_days)
-        .enumerate()
-        .scan(init, |yesterdays_stats, (i, daily_tss)| {
-            let next_daily_stats = calc_daily_stats(&yesterdays_stats, &daily_tss);
-            if i < length + 1
-                || next_daily_stats.ctl >= CTL(0.5)
-                || next_daily_stats.atl >= ATL(0.5)
-                || next_daily_stats.tsb >= TSB(0.5)
-            {
-                Some(next_daily_stats)
-            } else {
-                None
-            }
-        })
-        .skip(1)
-        .collect()
-}
-
-/// This function will accumulate daily Training Stress Scores from the whole set of activities
-/// in a format that is accepted by `calc_rolling_daily_stats`
-/// This does:
-/// - filter tss records older than last known stats, if exists
-/// - sort
-/// - fill gaps with 0 TSS days
-/// - fill beginning of the list with 0 TSS days, if last known stats exist
-pub fn prepare_daily_tss(
-    unsorted: &Vec<DailyTSS>,
-    last_known_stats: Option<&DailyStats>,
-) -> SortedDailyTSS {
-    // In order to fill gap between the last known stat and the first daily tss record,
-    // we initialise the BTreeMap with 0 TSS values.
-    let init_map: BTreeMap<NaiveDate, TSS> = match last_known_stats {
-        None => BTreeMap::new(),
-        Some(stats) => match unsorted.first() {
+impl SortedDailyTSS {
+    /// This function will accumulate daily Training Stress Scores from the whole set of activities
+    /// in a format that is accepted by `DailyStats::calc_rolling`
+    /// This does:
+    /// - filter tss records older than last known stats, if exists
+    /// - sort
+    /// - fill gaps with 0 TSS days
+    /// - fill beginning of the list with 0 TSS days, if last known stats exist
+    pub fn from_unsorted(
+        unsorted: &Vec<DailyTSS>,
+        last_known_stats: Option<&DailyStats>,
+    ) -> SortedDailyTSS {
+        // In order to fill gap between the last known stat and the first daily tss record,
+        // we initialise the BTreeMap with 0 TSS values.
+        let init_map: BTreeMap<NaiveDate, TSS> = match last_known_stats {
             None => BTreeMap::new(),
-            // As this is still unsorted, this is practically a random date in the date range.
-            Some(DailyTSS(random_date, _)) => {
-                let days = (*random_date - stats.date).num_days();
-                (1..days)
-                    .map(|days| (stats.date + Days::new(days as u64), TSS(0)))
-                    .collect()
-            }
-        },
-    };
-    // By definitions BTreeMap converts into an iterator sorted by keys
-    let acc = unsorted
-        .iter()
-        // Accumulation step
-        .fold(init_map, |mut acc, DailyTSS(date, tss)| {
-            acc.entry(*date)
-                .and_modify(|acc_tss| *acc_tss += *tss)
-                .or_insert(*tss);
-
-            acc
-        })
-        .iter()
-        .map(|(date, tss)| DailyTSS(date.clone(), tss.clone()))
-        // Filling gaps
-        .fold(Vec::with_capacity(unsorted.len()), |mut acc, daily_tss| {
-            match acc.last() {
-                Some(DailyTSS(last_date, _)) => {
-                    let diff = (daily_tss.0 - *last_date).num_days() as u64;
-                    let last_date = last_date.clone();
-
-                    (1..diff).for_each(|days| {
-                        acc.push(DailyTSS(last_date + Days::new(days), TSS(0)));
-                    });
-                    acc.push(daily_tss);
+            Some(stats) => match unsorted.first() {
+                None => BTreeMap::new(),
+                // As this is still unsorted, this is practically a random date in the date range.
+                Some(DailyTSS(random_date, _)) => {
+                    let days = (*random_date - stats.date).num_days();
+                    (1..days)
+                        .map(|days| (stats.date + Days::new(days as u64), TSS(0)))
+                        .collect()
                 }
-                None => acc.push(daily_tss),
-            }
-            acc
-        })
-        .into_iter()
-        .skip_while(|DailyTSS(date, _)| {
-            if let Some(daily_stats) = last_known_stats {
-                date <= &daily_stats.date
-            } else {
-                false
-            }
-        })
-        .collect();
+            },
+        };
+        // By definitions BTreeMap converts into an iterator sorted by keys
+        let acc = unsorted
+            .iter()
+            // Accumulation step
+            .fold(init_map, |mut acc, DailyTSS(date, tss)| {
+                acc.entry(*date)
+                    .and_modify(|acc_tss| *acc_tss += *tss)
+                    .or_insert(*tss);
 
-    SortedDailyTSS(acc)
+                acc
+            })
+            .iter()
+            .map(|(date, tss)| DailyTSS(date.clone(), tss.clone()))
+            // Filling gaps
+            .fold(Vec::with_capacity(unsorted.len()), |mut acc, daily_tss| {
+                match acc.last() {
+                    Some(DailyTSS(last_date, _)) => {
+                        let diff = (daily_tss.0 - *last_date).num_days() as u64;
+                        let last_date = last_date.clone();
+
+                        (1..diff).for_each(|days| {
+                            acc.push(DailyTSS(last_date + Days::new(days), TSS(0)));
+                        });
+                        acc.push(daily_tss);
+                    }
+                    None => acc.push(daily_tss),
+                }
+                acc
+            })
+            .into_iter()
+            .skip_while(|DailyTSS(date, _)| {
+                if let Some(daily_stats) = last_known_stats {
+                    date <= &daily_stats.date
+                } else {
+                    false
+                }
+            })
+            .collect();
+
+        SortedDailyTSS(acc)
+    }
 }
 
 #[cfg(test)]
 mod daily_stats_tests {
-    use crate::daily_stats::{
-        calc_rolling_daily_stats, prepare_daily_tss, DailyStats, DailyTSS, SortedDailyTSS, ATL,
-        CTL, TSB, TSS,
-    };
+    use crate::daily_stats::{DailyStats, DailyTSS, SortedDailyTSS, ATL, CTL, TSB, TSS};
     use assertables::*;
     use chrono::{Days, NaiveDate};
     use proptest::collection::vec;
@@ -234,7 +224,7 @@ mod daily_stats_tests {
         #[test]
         fn daily_tss_is_sorted(daily_tss_vec in vec(arb_daily_tss(), 20)) {
 
-            let SortedDailyTSS(sorted) = prepare_daily_tss(&daily_tss_vec, None);
+            let SortedDailyTSS(sorted) = SortedDailyTSS::from_unsorted(&daily_tss_vec, None);
             let dates = sorted.iter().map(|DailyTSS(date, _)| date).collect::<Vec<_>>();
 
             let mut expected = dates.clone();
@@ -251,7 +241,7 @@ mod daily_stats_tests {
             daily_tss_vec in vec(arb_daily_tss(), 20)
             ) {
 
-            let SortedDailyTSS(sorted) = prepare_daily_tss(&daily_tss_vec, daily_stats.as_ref());
+            let SortedDailyTSS(sorted) = SortedDailyTSS::from_unsorted(&daily_tss_vec, daily_stats.as_ref());
             let dates = sorted.iter().map(|DailyTSS(date, _)| date).collect::<Vec<_>>();
 
             assert!(dates.windows(2).all(|days| *days[0] + Days::new(1) == *days[1]));
@@ -265,8 +255,8 @@ mod daily_stats_tests {
     proptest! {
         #[test]
         fn daily_stats_is_at_least_as_long_as_input(daily_stats in option::of(arb_daily_stats()), daily_tss_vec in vec(arb_daily_tss(), 50)) {
-            let sorted = prepare_daily_tss(&daily_tss_vec, None);
-            let daily_stats = calc_rolling_daily_stats(sorted.clone(), daily_stats.as_ref() );
+            let sorted = SortedDailyTSS::from_unsorted(&daily_tss_vec, None);
+            let daily_stats = DailyStats::calc_rolling(sorted.clone(), daily_stats.as_ref() );
             assert_ge!(daily_stats.len(), sorted.0.len());
         }
     }
@@ -274,10 +264,12 @@ mod daily_stats_tests {
     proptest! {
         #[test]
         fn daily_stats_is_extended(daily_stats in option::of(arb_daily_stats()), daily_tss_vec in vec(arb_daily_tss(), 50)) {
-            prop_assume!(!daily_tss_vec.is_empty());
+            let sorted = SortedDailyTSS::from_unsorted(&daily_tss_vec, daily_stats.as_ref());
+            // Occasionally the base case (DailyStats) comes after all the TSS data, resulting
+            // in an empty sorted vector
+            prop_assume!(!sorted.0.is_empty());
 
-            let sorted = prepare_daily_tss(&daily_tss_vec, daily_stats.as_ref());
-            let daily_stats = calc_rolling_daily_stats(sorted, daily_stats.as_ref());
+            let daily_stats = DailyStats::calc_rolling(sorted, daily_stats.as_ref());
 
             let last = daily_stats.last().unwrap();
             assert_le!(last.ctl, CTL(0.5));
