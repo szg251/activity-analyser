@@ -1,4 +1,3 @@
-use crate::measurements::Power;
 use chrono::{DateTime, Duration, Local};
 use fitparser::profile::field_types::MesgNum;
 use fitparser::{self, Error, FitDataRecord, Value};
@@ -42,11 +41,11 @@ impl Activity {
         Self::from_bytes(&buffer)
     }
 
-    fn find_one_value(self: &Self, mesg_num: &MesgNum, field_name: &str) -> Option<&Value> {
+    pub fn find_one_value(self: &Self, mesg_num: &MesgNum, field_name: &str) -> Option<&Value> {
         find_one_value(&self.records, mesg_num, field_name)
     }
 
-    fn find_many_values(self: &Self, mesg_num: &MesgNum, field_name: &str) -> Vec<&Value> {
+    pub fn find_many_values(self: &Self, mesg_num: &MesgNum, field_name: &str) -> Vec<&Value> {
         self.records
             .iter()
             .filter_map(|record| {
@@ -67,7 +66,7 @@ impl Activity {
             .collect()
     }
 
-    fn find_many_values_with_timestamps(
+    pub fn find_many_values_with_timestamps(
         self: &Self,
         mesg_num: &MesgNum,
         field_name: &str,
@@ -146,10 +145,6 @@ fn get_str<'a>(value: &'a Value) -> Option<&'a String> {
         Value::String(str) => Some(&str),
         _ => None,
     }
-}
-
-fn get_power<'a>(value: &'a Value) -> Option<Power> {
-    Some(Power(value.try_into().ok()?))
 }
 
 fn get_timestamp<'a>(value: &'a Value) -> Option<&'a DateTime<Local>> {

@@ -60,7 +60,7 @@ impl MeasurementRecord {
 }
 
 #[cfg(test)]
-mod test {
+mod athlete_tests {
     use super::*;
 
     #[test]

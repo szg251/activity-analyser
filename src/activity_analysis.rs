@@ -239,8 +239,10 @@ pub fn calc_altitude_changes(
 }
 
 #[cfg(test)]
-mod test {
+mod activity_analysis_tests {
     use super::*;
+    use assertables::{assert_in_delta, assert_in_delta_as_result};
+    use std::fs::File;
 
     #[test]
     /// Don't panic on small data (less than 30 seconds)
@@ -252,7 +254,7 @@ mod test {
 
     #[test]
     /// Constant effort NP should be equal to average power
-    fn constant_effort() {
+    fn constant_effort_np() {
         // TODO: implement and test intermittent data
         // let power_data: Vec<(Power, DateTime<Local>)> = (0..3600)
         //     .map(|s| {
@@ -265,5 +267,94 @@ mod test {
         let power_data: Vec<Power> = (0..3600).map(|_| Power(200)).collect();
 
         assert_eq!(calc_normalized_power(&power_data), Some(Power(200)));
+    }
+
+    #[test]
+    fn one_hour_effort_tss() {
+        let tss = calc_tss(&Power(260), &Duration::hours(1), &Power(260));
+        assert_eq!(tss, 100)
+    }
+
+    #[test]
+    fn ninety_minute_effort_tss() {
+        let tss = calc_tss(&Power(260), &Duration::minutes(90), &Power(260));
+        assert_eq!(tss, 150)
+    }
+
+    #[test]
+    fn four_hour_effort_tss() {
+        let tss = calc_tss(&Power(260), &Duration::hours(4), &Power(130));
+        assert_eq!(tss, 100)
+    }
+
+    #[test]
+    fn constant_effort_total_work() {
+        let Work(work) = calc_total_work(&vec![Power(260); 100]);
+        assert_in_delta!(work, 26.0, 0.001);
+    }
+
+    // Golden tests
+
+    #[test]
+    fn activity_file_work() {
+        let mut fp = File::open("./tests/fixtures/Activity.fit").unwrap();
+        let activity = Activity::from_reader(&mut fp).unwrap();
+
+        let Work(work) = calc_total_work(&activity.get_data("power"));
+        assert_in_delta!(work, 719.35, 0.001);
+    }
+
+    #[test]
+    fn activity_file_average_power() {
+        let mut fp = File::open("./tests/fixtures/Activity.fit").unwrap();
+        let activity = Activity::from_reader(&mut fp).unwrap();
+
+        let Power(power) = Average::average(&activity.get_data("power")).unwrap();
+        assert_eq!(power, 199);
+    }
+
+    #[test]
+    fn activity_file_normalized_power() {
+        let mut fp = File::open("./tests/fixtures/Activity.fit").unwrap();
+        let activity = Activity::from_reader(&mut fp).unwrap();
+
+        let Power(power) = calc_normalized_power(&activity.get_data("power")).unwrap();
+        assert_eq!(power, 214);
+    }
+
+    #[test]
+    fn activity_file_intensity_factor() {
+        let mut fp = File::open("./tests/fixtures/Activity.fit").unwrap();
+        let activity = Activity::from_reader(&mut fp).unwrap();
+        let ftp = Power(260);
+        let np = calc_normalized_power(&activity.get_data("power")).unwrap();
+
+        let intensity_factor = calc_intensity_factor(&ftp, &np);
+
+        assert_in_delta!(intensity_factor, 0.82, 0.005);
+    }
+
+    #[test]
+    fn activity_file_variability_index() {
+        let mut fp = File::open("./tests/fixtures/Activity.fit").unwrap();
+        let activity = Activity::from_reader(&mut fp).unwrap();
+        let avg_power = Average::average(&activity.get_data("power")).unwrap();
+        let np = calc_normalized_power(&activity.get_data("power")).unwrap();
+
+        let variability_index = calc_variability_index(&np, &avg_power);
+
+        assert_in_delta!(variability_index, 1.075, 0.0005);
+    }
+
+    #[test]
+    fn activity_file_tss() {
+        let mut fp = File::open("./tests/fixtures/Activity.fit").unwrap();
+        let activity = Activity::from_reader(&mut fp).unwrap();
+        let ftp = Power(260);
+        let np = calc_normalized_power(&activity.get_data("power")).unwrap();
+
+        let tss = calc_tss(&ftp, &activity.duration.unwrap(), &np);
+
+        assert_eq!(tss, 67);
     }
 }

@@ -47,8 +47,8 @@ impl Average for Power {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Add, Sub, Sum)]
-pub struct Work(pub i64);
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Add, Sub, Sum)]
+pub struct Work(pub f64);
 
 impl TryFrom<Value> for Work {
     type Error = Error;
@@ -59,7 +59,7 @@ impl TryFrom<Value> for Work {
 
 impl From<Power> for Work {
     fn from(value: Power) -> Work {
-        Work(value.0)
+        Work(value.0 as f64 / 1000.0)
     }
 }
 
