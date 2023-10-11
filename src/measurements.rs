@@ -211,29 +211,6 @@ impl From<Altitude> for AltitudeDiff {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct PositionLat(pub i64);
-
-impl TryFrom<Value> for PositionLat {
-    type Error = Error;
-    fn try_from(value: Value) -> Result<Self, Error> {
-        Ok(Self(value.try_into()?))
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct PositionLong(pub i64);
-
-impl TryFrom<Value> for PositionLong {
-    type Error = Error;
-    fn try_from(value: Value) -> Result<Self, Error> {
-        Ok(Self(value.try_into()?))
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Position(pub PositionLat, pub PositionLong);
-
 /// Weight data in kg
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Weight(pub f64);

@@ -1,38 +1,6 @@
-use crate::metrics::{ATL, CTL, TSB, TSS};
+use crate::metrics::{DailyTSS, ATL, CTL, TSB, TSS};
 use chrono::{Days, NaiveDate};
 use std::collections::BTreeMap;
-
-/// Accumulated Training Stress Scores for a day
-#[derive(Clone, Debug)]
-pub struct DailyTSS(pub NaiveDate, pub TSS);
-
-/// Calculate training load with a given decay and impact constant
-fn calc_training_load(
-    decay_const: i64,
-    impact_const: i64,
-    yesterdays_tl: f64,
-    daily_tss: &DailyTSS,
-) -> f64 {
-    let TSS(tss) = daily_tss.1;
-    let decay_factor = (-1.0 / decay_const as f64).exp();
-    let impact_factor = 1.0 - (-1.0 / impact_const as f64).exp();
-
-    yesterdays_tl * decay_factor + tss as f64 * impact_factor
-}
-
-/// Calculating Chronic Training Load (CTL), a 42 day average of daily TSS values
-pub fn calc_ctl(CTL(yesterdays_tl): &CTL, daily_tss: &DailyTSS) -> CTL {
-    CTL(calc_training_load(42, 42, *yesterdays_tl, daily_tss))
-}
-
-/// Calculating Acute Training Load (ATL), a 7 day average of daily TSS values
-pub fn calc_atl(ATL(yesterdays_tl): &ATL, daily_tss: &DailyTSS) -> ATL {
-    ATL(calc_training_load(7, 7, *yesterdays_tl, daily_tss))
-}
-
-pub fn calc_tsb(CTL(ctl): &CTL, ATL(atl): &ATL) -> TSB {
-    TSB(ctl - atl)
-}
 
 /// Peformance management metrics
 #[derive(Clone, Debug)]
@@ -48,9 +16,9 @@ impl DailyStats {
     /// Calculate next day's performance management metrics based on the metrics of yesterday
     /// and the daily accumulated TSS
     pub fn calc_next(yesterdays_stats: &DailyStats, daily_tss: &DailyTSS) -> DailyStats {
-        let ctl = calc_ctl(&yesterdays_stats.ctl, daily_tss);
-        let atl = calc_atl(&yesterdays_stats.atl, daily_tss);
-        let tsb = calc_tsb(&ctl, &atl);
+        let ctl = CTL::calculate(&yesterdays_stats.ctl, daily_tss);
+        let atl = ATL::calculate(&yesterdays_stats.atl, daily_tss);
+        let tsb = TSB::calculate(&ctl, &atl);
 
         let DailyTSS(date, tss) = daily_tss;
 

@@ -17,23 +17,23 @@ impl MeasurementRecords {
 
     /// Get the FTP of the athlete for a given date
     pub fn get_actual_ftp(self: &Self, date: &NaiveDate) -> Option<Power> {
-        self.get_actual(date, MeasurementRecord::get_ftp)
+        self.get_actual(date)
     }
 
     /// Get the FTHr of the athlete for a given date
     pub fn get_actual_fthr(self: &Self, date: &NaiveDate) -> Option<HeartRate> {
-        self.get_actual(date, MeasurementRecord::get_fthr)
+        self.get_actual(date)
     }
 
     /// Get some measurement of the athlete for a given date with a getter
-    fn get_actual<T, F>(self: &Self, date: &NaiveDate, getter: F) -> Option<T>
+    fn get_actual<T>(self: &Self, date: &NaiveDate) -> Option<T>
     where
-        F: Fn(&MeasurementRecord) -> Option<T>,
+        T: TryFrom<MeasurementRecord>,
     {
         let MeasurementRecords(measurements) = self;
         let m = measurements
             .iter()
-            .filter_map(|(d, m)| Some((*d, getter(m)?)))
+            .filter_map(|(d, m)| Some((*d, T::try_from(m.clone()).ok()?)))
             .take_while(|(d, _)| d <= date)
             .last()?;
         Some(m.1)
@@ -48,18 +48,22 @@ pub enum MeasurementRecord {
     Weight(Weight),
 }
 
-impl MeasurementRecord {
-    pub fn get_ftp(self: &Self) -> Option<Power> {
-        match self {
-            Self::FTP(power) => Some(*power),
-            _ => None,
+impl TryFrom<MeasurementRecord> for Power {
+    type Error = ();
+    fn try_from(value: MeasurementRecord) -> Result<Self, ()> {
+        match value {
+            MeasurementRecord::FTP(power) => Ok(power),
+            _ => Err(()),
         }
     }
+}
 
-    pub fn get_fthr(self: &Self) -> Option<HeartRate> {
-        match self {
-            Self::FTHr(hr) => Some(*hr),
-            _ => None,
+impl TryFrom<MeasurementRecord> for HeartRate {
+    type Error = ();
+    fn try_from(value: MeasurementRecord) -> Result<Self, ()> {
+        match value {
+            MeasurementRecord::FTHr(power) => Ok(power),
+            _ => Err(()),
         }
     }
 }
