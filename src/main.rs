@@ -4,13 +4,13 @@ use activity_analyser::activity::Activity;
 use activity_analyser::activity_analysis::ActivityAnalysis;
 use activity_analyser::athlete::{MeasurementRecord, MeasurementRecords};
 use activity_analyser::daily_stats::{DailyStats, SortedDailyTSS};
-use activity_analyser::measurements::{HeartRate, Power, Weight};
+use activity_analyser::measurements::{HeartRate, Power, Speed, Weight};
 use activity_analyser::metrics::DailyTSS;
 use chrono::{Duration, Local, NaiveDate};
 use clap::Parser;
 use fitparser::{self, Error};
-use prettytable::format;
-use std::collections::HashSet;
+use prettytable::{format, Table};
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::PathBuf;
@@ -107,17 +107,11 @@ fn single_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
         ],
         [
             "Variability Index",
-            format!(
-                "{:.2}",
-                DisplayableOption(activity_analysis.variability_index)
-            )
+            DisplayableOption(activity_analysis.variability_index)
         ],
         [
             "Intensity Factor",
-            format!(
-                "{:.2}",
-                DisplayableOption(activity_analysis.intensity_factor)
-            )
+            DisplayableOption(activity_analysis.intensity_factor)
         ],
         ["Total Work", activity_analysis.total_work],
         ["TSS", DisplayableOption(activity_analysis.tss)],
@@ -135,131 +129,26 @@ fn single_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
     data_table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
     data_table.printstd();
 
-    let mut peaks_table = table![
-        [
-            "Power (5s)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .power
-                    .get(&Duration::seconds(5))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Power (1m)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .power
-                    .get(&Duration::minutes(1))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Power (5m)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .power
-                    .get(&Duration::minutes(5))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Power (20m)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .power
-                    .get(&Duration::minutes(20))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Speed (5s)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .speed
-                    .get(&Duration::seconds(5))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Speed (1m)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .speed
-                    .get(&Duration::minutes(1))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Speed (5m)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .speed
-                    .get(&Duration::minutes(5))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Speed (20m)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .speed
-                    .get(&Duration::minutes(20))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Heart rate (5s)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .heart_rate
-                    .get(&Duration::seconds(5))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Heart rate (1m)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .heart_rate
-                    .get(&Duration::minutes(1))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Heart rate (5m)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .heart_rate
-                    .get(&Duration::minutes(5))
-                    .map(|x| x.value)
-            )
-        ],
-        [
-            "Heart rate (20m)",
-            DisplayableOption(
-                activity_analysis
-                    .peak_performances
-                    .heart_rate
-                    .get(&Duration::minutes(20))
-                    .map(|x| x.value)
-            )
-        ]
-    ];
+    let power_peaks = activity_analysis
+        .peak_performances
+        .power
+        .iter()
+        .map(|(k, v)| (k, v.value))
+        .collect::<HashMap<_, _>>();
+    let speed_peaks = activity_analysis
+        .peak_performances
+        .speed
+        .iter()
+        .map(|(k, v)| (k, v.value))
+        .collect::<HashMap<_, _>>();
+    let heart_rate_peaks = activity_analysis
+        .peak_performances
+        .heart_rate
+        .iter()
+        .map(|(k, v)| (k, v.value))
+        .collect::<HashMap<_, _>>();
 
-    peaks_table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
-    peaks_table.printstd();
+    peaks_table(&power_peaks, &speed_peaks, &heart_rate_peaks).printstd();
 
     if verbose {
         println!("{:#?}", activity.records);
@@ -267,10 +156,70 @@ fn single_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
     Ok(())
 }
 
+fn peaks_table(
+    power_peaks: &HashMap<&Duration, Power>,
+    speed_peaks: &HashMap<&Duration, Speed>,
+    heart_rate_peaks: &HashMap<&Duration, HeartRate>,
+) -> Table {
+    let mut peaks_table = table![
+        [
+            "Power (5s)",
+            DisplayableOption(power_peaks.get(&Duration::seconds(5)))
+        ],
+        [
+            "Power (1m)",
+            DisplayableOption(power_peaks.get(&Duration::minutes(1)))
+        ],
+        [
+            "Power (5m)",
+            DisplayableOption(power_peaks.get(&Duration::minutes(5)))
+        ],
+        [
+            "Power (20m)",
+            DisplayableOption(power_peaks.get(&Duration::minutes(20)))
+        ],
+        [
+            "Speed (5s)",
+            DisplayableOption(speed_peaks.get(&Duration::seconds(5)))
+        ],
+        [
+            "Speed (1m)",
+            DisplayableOption(speed_peaks.get(&Duration::minutes(1)))
+        ],
+        [
+            "Speed (5m)",
+            DisplayableOption(speed_peaks.get(&Duration::minutes(5)))
+        ],
+        [
+            "Speed (20m)",
+            DisplayableOption(speed_peaks.get(&Duration::minutes(20)))
+        ],
+        [
+            "Heart rate (5s)",
+            DisplayableOption(heart_rate_peaks.get(&Duration::seconds(5)))
+        ],
+        [
+            "Heart rate (1m)",
+            DisplayableOption(heart_rate_peaks.get(&Duration::minutes(1)))
+        ],
+        [
+            "Heart rate (5m)",
+            DisplayableOption(heart_rate_peaks.get(&Duration::minutes(5)))
+        ],
+        [
+            "Heart rate (20m)",
+            DisplayableOption(heart_rate_peaks.get(&Duration::minutes(20)))
+        ]
+    ];
+    peaks_table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+    peaks_table
+}
+
 fn multi_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
     let measurements = def_measurements();
     let files = fs::read_dir(path)?;
 
+    println!("Reading files...");
     let (successes, failures): (Vec<Result<Activity, Error>>, Vec<Result<Activity, Error>>) = files
         .map(|entry| {
             let mut fp = fs::File::open(entry?.path())?;
@@ -287,8 +236,12 @@ fn multi_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
         .map(|x| x.as_ref().unwrap_err())
         .collect::<Vec<_>>();
 
-    println!("Successfully parsed files: {}", successes.len());
-    println!("Failed files: {}", failures.len());
+    println!(
+        "Successfully parsed {} files, failed to read {}.",
+        successes.len(),
+        failures.len()
+    );
+    println!("Analysing files...");
 
     let peak_durations = HashSet::from([
         Duration::seconds(5),
@@ -332,6 +285,69 @@ fn multi_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
 
     pm_table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
     pm_table.printstd();
+
+    let power_peaks =
+        activities_with_analyses
+            .iter()
+            .fold(HashMap::new(), |mut acc, (_, analysis)| {
+                analysis
+                    .peak_performances
+                    .power
+                    .iter()
+                    .for_each(|(duration, next_val)| {
+                        let next_val = next_val.value;
+                        acc.entry(duration)
+                            .and_modify(|val| {
+                                if *val < next_val {
+                                    *val = next_val
+                                }
+                            })
+                            .or_insert(next_val);
+                    });
+                acc
+            });
+    let speed_peaks =
+        activities_with_analyses
+            .iter()
+            .fold(HashMap::new(), |mut acc, (_, analysis)| {
+                analysis
+                    .peak_performances
+                    .speed
+                    .iter()
+                    .for_each(|(duration, next_val)| {
+                        let next_val = next_val.value;
+                        acc.entry(duration)
+                            .and_modify(|val| {
+                                if *val < next_val {
+                                    *val = next_val
+                                }
+                            })
+                            .or_insert(next_val);
+                    });
+                acc
+            });
+    let heart_rate_peaks =
+        activities_with_analyses
+            .iter()
+            .fold(HashMap::new(), |mut acc, (_, analysis)| {
+                analysis
+                    .peak_performances
+                    .heart_rate
+                    .iter()
+                    .for_each(|(duration, next_val)| {
+                        let next_val = next_val.value;
+                        acc.entry(duration)
+                            .and_modify(|val| {
+                                if *val < next_val {
+                                    *val = next_val
+                                }
+                            })
+                            .or_insert(next_val);
+                    });
+                acc
+            });
+
+    peaks_table(&power_peaks, &speed_peaks, &heart_rate_peaks).printstd();
 
     if verbose {
         println!("{:#?}", daily_stats);

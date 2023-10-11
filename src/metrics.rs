@@ -1,6 +1,7 @@
 use crate::measurements::{Altitude, AltitudeDiff, Average, HeartRate, Power, Work};
 use chrono::{Duration, NaiveDate};
 use derive_more::{Add, AddAssign, Display};
+use std::fmt::{Display, Formatter};
 // use crate::activity::Activity;
 
 /// Accumulated Training Stress Scores for a day
@@ -129,7 +130,7 @@ impl TSB {
 }
 
 /// Intensity Factor
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Display)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct IF(pub f64);
 
 impl IF {
@@ -142,8 +143,14 @@ impl IF {
     }
 }
 
+impl Display for IF {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:.2}", self.0)
+    }
+}
+
 /// Variability Index
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Display)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct VI(pub f64);
 
 impl VI {
@@ -153,6 +160,12 @@ impl VI {
         let Power(average_power) = *average_power;
 
         Self(normalized_power as f64 / average_power as f64)
+    }
+}
+
+impl Display for VI {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:.2}", self.0)
     }
 }
 
