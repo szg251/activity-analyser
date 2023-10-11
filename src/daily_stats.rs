@@ -2,6 +2,7 @@ use crate::metrics::{ATL, CTL, TSB, TSS};
 use chrono::{Days, NaiveDate};
 use std::collections::BTreeMap;
 
+/// Accumulated Training Stress Scores for a day
 #[derive(Clone, Debug)]
 pub struct DailyTSS(pub NaiveDate, pub TSS);
 
@@ -33,6 +34,7 @@ pub fn calc_tsb(CTL(ctl): &CTL, ATL(atl): &ATL) -> TSB {
     TSB(ctl - atl)
 }
 
+/// Peformance management metrics
 #[derive(Clone, Debug)]
 pub struct DailyStats {
     pub date: NaiveDate,
@@ -43,6 +45,8 @@ pub struct DailyStats {
 }
 
 impl DailyStats {
+    /// Calculate next day's performance management metrics based on the metrics of yesterday
+    /// and the daily accumulated TSS
     pub fn calc_next(yesterdays_stats: &DailyStats, daily_tss: &DailyTSS) -> DailyStats {
         let ctl = calc_ctl(&yesterdays_stats.ctl, daily_tss);
         let atl = calc_atl(&yesterdays_stats.atl, daily_tss);

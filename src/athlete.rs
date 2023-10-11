@@ -1,6 +1,7 @@
 use crate::measurements::{HeartRate, Power, Weight};
 use chrono::NaiveDate;
 
+/// A sorted vector including all previous measurement data of an athlete
 pub struct MeasurementRecords(Vec<(NaiveDate, MeasurementRecord)>);
 
 impl MeasurementRecords {
@@ -14,14 +15,17 @@ impl MeasurementRecords {
         Self(measurements.to_vec())
     }
 
+    /// Get the FTP of the athlete for a given date
     pub fn get_actual_ftp(self: &Self, date: &NaiveDate) -> Option<Power> {
         self.get_actual(date, MeasurementRecord::get_ftp)
     }
 
+    /// Get the FTHr of the athlete for a given date
     pub fn get_actual_fthr(self: &Self, date: &NaiveDate) -> Option<HeartRate> {
         self.get_actual(date, MeasurementRecord::get_fthr)
     }
 
+    /// Get some measurement of the athlete for a given date with a getter
     fn get_actual<T, F>(self: &Self, date: &NaiveDate, getter: F) -> Option<T>
     where
         F: Fn(&MeasurementRecord) -> Option<T>,
@@ -36,6 +40,7 @@ impl MeasurementRecords {
     }
 }
 
+/// An athlete measurement type
 #[derive(Clone)]
 pub enum MeasurementRecord {
     FTP(Power),

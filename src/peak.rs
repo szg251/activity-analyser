@@ -42,11 +42,11 @@ impl<T> Eq for Peak<T> where T: Eq {}
 
 type TimeInterval = (DateTime<Local>, DateTime<Local>);
 
-/// Find a peak performance of a given measurement of n seconds
 impl<T> Peak<T>
 where
     T: Ord + Average + Copy,
 {
+    /// Find a peak performance of a given measurement of n seconds
     pub fn from_measurement_records(
         measurements: &Vec<(T, &DateTime<Local>)>,
         duration: Duration,

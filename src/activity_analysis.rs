@@ -6,6 +6,7 @@ use crate::peak::Peak;
 use chrono::{DateTime, Duration, Local, NaiveDate};
 use std::collections::{HashMap, HashSet};
 
+/// Results of a full activity analysis
 #[derive(Debug)]
 pub struct ActivityAnalysis {
     pub total_work: Work,
@@ -26,6 +27,7 @@ pub struct ActivityAnalysis {
 }
 
 impl ActivityAnalysis {
+    /// Analyse an activity and create an ActivityAnalysis
     pub fn from_activity(
         measurement_records: &MeasurementRecords,
         activity: &Activity,
@@ -117,10 +119,12 @@ impl ActivityAnalysis {
     }
 }
 
+/// Calculate total work
 pub fn calc_total_work(power_data: &Vec<Power>) -> Work {
     power_data.into_iter().map(|power| Work::from(*power)).sum()
 }
 
+/// Calculate Normalized Power
 pub fn calc_normalized_power(power_data: &Vec<Power>) -> Option<Power> {
     // Returning simple average, if data size doesn't hit threshold
     if power_data.len() < 30 {
@@ -138,20 +142,14 @@ pub fn calc_normalized_power(power_data: &Vec<Power>) -> Option<Power> {
     Some(Power(result))
 }
 
-pub fn average<T>(elems: T) -> i64
-where
-    T: AsRef<[i64]>,
-{
-    let elems = elems.as_ref();
-    elems.iter().sum::<i64>() / elems.len() as i64
-}
-
+/// Calculate Intensity Factor
 pub fn calc_intensity_factor(ftp: &Power, normalized_power: &Power) -> f64 {
     let Power(ftp) = *ftp;
     let Power(normalized_power) = *normalized_power;
     normalized_power as f64 / ftp as f64
 }
 
+/// Calculate Variablity Index
 pub fn calc_variability_index(normalized_power: &Power, average_power: &Power) -> f64 {
     let Power(normalized_power) = *normalized_power;
     let Power(average_power) = *average_power;
@@ -159,6 +157,7 @@ pub fn calc_variability_index(normalized_power: &Power, average_power: &Power) -
     normalized_power as f64 / average_power as f64
 }
 
+/// Calculate rolling averages of a set window size
 pub fn rolling_averages<I, T>(data: T, size: usize) -> Vec<I>
 where
     T: AsRef<[I]>,
@@ -170,6 +169,7 @@ where
         .collect()
 }
 
+/// Calculate user specific Training Stress Scores
 pub fn calc_tss(ftp: &Power, duration: &Duration, normalized_power: &Power) -> TSS {
     let intensity_factor = calc_intensity_factor(ftp, normalized_power);
     let Power(ftp) = *ftp;
@@ -182,6 +182,7 @@ pub fn calc_tss(ftp: &Power, duration: &Duration, normalized_power: &Power) -> T
     )
 }
 
+/// Calculate user specific Heart Rate Training Stress Score
 pub fn calc_hr_tss(fthr: &HeartRate, heart_rate_data: &Vec<HeartRate>) -> TSS {
     let HeartRate(fthr) = fthr;
     let zones = (
@@ -237,6 +238,7 @@ pub fn calc_hr_tss(fthr: &HeartRate, heart_rate_data: &Vec<HeartRate>) -> TSS {
         / 3600)
 }
 
+/// Calculate altitude gain and altitude loss of an activity
 pub fn calc_altitude_changes(
     altitude_data: &Vec<Altitude>,
 ) -> (Option<AltitudeDiff>, Option<AltitudeDiff>) {
@@ -272,6 +274,7 @@ pub fn calc_altitude_changes(
     (gain, loss)
 }
 
+/// Highest performance values achieved for certain time durations
 #[derive(Debug)]
 pub struct PeakPerformances {
     pub power: HashMap<Duration, Peak<Power>>,
@@ -280,6 +283,7 @@ pub struct PeakPerformances {
 }
 
 impl PeakPerformances {
+    /// Calculate peak performances for multiple measurement types
     pub fn from_data(
         power_data: &Vec<(Power, &DateTime<Local>)>,
         heart_rate_data: &Vec<(HeartRate, &DateTime<Local>)>,
@@ -292,6 +296,8 @@ impl PeakPerformances {
             speed: Self::get_one(speed_data, &peak_durations),
         }
     }
+
+    /// Calculate performances for a specific measurment type
     fn get_one<T>(
         data_with_timestamps: &Vec<(T, &DateTime<Local>)>,
         peak_durations: &HashSet<Duration>,

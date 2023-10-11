@@ -3,6 +3,7 @@ use fitparser::{Error, Value};
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter};
 
+/// A vector-like collection that can be averaged
 pub trait Average<A = Self>: Sized {
     fn average<I>(elems: I) -> Option<Self>
     where
@@ -24,6 +25,7 @@ impl Average for i64 {
     }
 }
 
+/// Power data in Watts
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Power(pub i64);
 
@@ -55,6 +57,7 @@ impl Average for Power {
     }
 }
 
+/// Work data in kJ
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Add, Sub, Sum)]
 pub struct Work(pub f64);
 
@@ -80,6 +83,7 @@ impl From<Power> for Work {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HeartRate(pub i64);
 
+/// Heart rate data in bpm
 impl Display for HeartRate {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         write!(f, "{} BPM", self.0)
@@ -108,6 +112,7 @@ impl Average for HeartRate {
     }
 }
 
+/// Cadence data in rpm
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Cadence(pub i64);
 
@@ -124,6 +129,8 @@ impl TryFrom<Value> for Cadence {
     }
 }
 
+/// Speed data in m/s
+/// Default display will convert it to km/h
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Speed(pub f64);
 
@@ -164,6 +171,7 @@ impl Average for Speed {
     }
 }
 
+/// Altitude in meters
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Altitude(pub f64);
 
@@ -180,6 +188,7 @@ impl TryFrom<Value> for Altitude {
     }
 }
 
+/// Altitude difference in meters
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Sub, Add, Sum)]
 pub struct AltitudeDiff(pub f64);
 
@@ -225,6 +234,7 @@ impl TryFrom<Value> for PositionLong {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Position(pub PositionLat, pub PositionLong);
 
+/// Weight data in kg
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Weight(pub f64);
 
