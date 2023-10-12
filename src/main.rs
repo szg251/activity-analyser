@@ -10,6 +10,7 @@ use chrono::{Duration, Local, NaiveDate};
 use clap::Parser;
 use fitparser::{self, Error};
 use prettytable::{format, Table};
+use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -217,15 +218,17 @@ fn peaks_table(
 
 fn multi_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
     let measurements = def_measurements();
-    let files = fs::read_dir(path)?;
 
     println!("Reading files...");
-    let (successes, failures): (Vec<Result<Activity, Error>>, Vec<Result<Activity, Error>>) = files
-        .map(|entry| {
-            let mut fp = fs::File::open(entry?.path())?;
-            Ok(Activity::from_reader(&mut fp)?)
-        })
-        .partition(Result::is_ok);
+    let (successes, failures): (Vec<Result<Activity, Error>>, Vec<Result<Activity, Error>>) =
+        fs::read_dir(path)?
+            .collect::<Vec<_>>()
+            .into_par_iter()
+            .map(|entry| {
+                let mut fp = fs::File::open(entry?.path())?;
+                Ok(Activity::from_reader(&mut fp)?)
+            })
+            .partition(Result::is_ok);
 
     let successes = successes
         .iter()
@@ -252,7 +255,7 @@ fn multi_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
     let today = Local::now().date_naive();
 
     let activities_with_analyses = successes
-        .iter()
+        .par_iter()
         .map(|activity| {
             (
                 activity,
