@@ -98,7 +98,7 @@ fn calc_training_load(
 }
 
 /// Chronic Training Load
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Display)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct CTL(pub f64);
 
 impl CTL {
@@ -108,8 +108,14 @@ impl CTL {
     }
 }
 
+impl Display for CTL {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:.0}", self.0)
+    }
+}
+
 /// Acute Training Load
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Display)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct ATL(pub f64);
 
 impl ATL {
@@ -119,13 +125,25 @@ impl ATL {
     }
 }
 
+impl Display for ATL {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:.0}", self.0)
+    }
+}
+
 /// Training Stress Balance
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Display)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct TSB(pub f64);
 
 impl TSB {
     pub fn calculate(CTL(ctl): &CTL, ATL(atl): &ATL) -> Self {
         Self(ctl - atl)
+    }
+}
+
+impl Display for TSB {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:.0}", self.0)
     }
 }
 
