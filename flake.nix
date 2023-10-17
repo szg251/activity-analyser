@@ -1,10 +1,8 @@
 {
-  description = "Haruna's stories web app";
+  description = "Activity Analyser web app";
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    rust-overlay.url = "github:oxalica/rust-overlay";
-    devenv.url = "github:cachix/devenv";
     nci.url = "github:yusdacra/nix-cargo-integration";
   };
 
@@ -12,7 +10,6 @@
     flake-parts.lib.mkFlake { inherit inputs; } {
 
       imports = [
-        inputs.devenv.flakeModule
         inputs.nci.flakeModule
       ];
 
@@ -20,40 +17,27 @@
 
       perSystem = { config, self', pkgs, system, ... }:
         let
-          isDarwin = pkgs.lib.hasSuffix "darwin" system;
-          buildInputs =
-            if isDarwin
-            then [
-              pkgs.mktemp
-              pkgs.darwin.apple_sdk.frameworks.CoreFoundation
-              pkgs.darwin.apple_sdk.frameworks.CoreServices
-              pkgs.darwin.apple_sdk.frameworks.Security
-              pkgs.darwin.apple_sdk.frameworks.SystemConfiguration
-            ] else [ ];
-          nciPkgs = config.nci.outputs."activity-analyser".packages;
+          crateName = "activity-analyser";
+
         in
         {
-          devenv.shells.default = {
-            packages = [ pkgs.cargo-watch ] ++ buildInputs;
-            languages.rust.enable = true;
-            pre-commit.hooks = {
-              rustfmt.enable = true;
-              nixpkgs-fmt.enable = true;
-            };
-          };
           nci = {
-            projects."activity-analyser".path = ./.;
-            crates."activity-analyser" = {
-              depsDrvConfig = { inherit buildInputs; };
+            toolchainConfig = {
+              channel = "stable";
+              components = [ "rust-analyzer" "rust-src" "clippy" "rustfmt" ];
+            };
+            projects.${crateName}.path = ./.;
+            crates.${crateName} = {
               drvConfig = {
-                inherit buildInputs;
                 env = {
                   SQLX_OFFLINE = "true";
                 };
               };
             };
           };
-          packages.default = nciPkgs.release;
+          devShells.default = config.nci.outputs.${crateName}.devShell;
+          packages.default = config.nci.outputs.${crateName}.packages.release;
+          checks.default = config.nci.outputs.${crateName}.check;
         };
     };
 }
