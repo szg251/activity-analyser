@@ -96,6 +96,7 @@ fn single_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
         ActivityAnalysis::from_activity(&measurements, &activity, &peak_durations);
 
     let mut data_table = table![
+        ["Workout name", DisplayableOption(activity.workout_name)],
         ["Start time", DisplayableOption(activity.start_time)],
         ["Duration", DisplayableOption(activity.duration)],
         [

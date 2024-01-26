@@ -16,8 +16,6 @@ pub struct Activity {
 impl Activity {
     /// Parse a slice of bytes into an Activity
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, Error> {
-        let bytes = bytes.clone();
-
         let records = fitparser::from_bytes(&bytes)?;
         let workout_name = find_one_value(&records, &MesgNum::Workout, "wkt_name")
             .map(value_to_str)

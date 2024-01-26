@@ -3,3 +3,4 @@
 .direnv
 .devenv
 proptest-regressions
+.DS_Store

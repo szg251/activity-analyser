@@ -6,10 +6,12 @@ use std::fmt::{Display, Formatter};
 
 /// Accumulated Training Stress Scores for a day
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DailyTSS(pub NaiveDate, pub TSS);
 
 /// Training Stress Score
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Add, AddAssign, Debug, Display)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TSS(pub i64);
 
 impl TSS {
@@ -99,6 +101,7 @@ fn calc_training_load(
 
 /// Chronic Training Load
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CTL(pub f64);
 
 impl CTL {
@@ -116,6 +119,7 @@ impl Display for CTL {
 
 /// Acute Training Load
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ATL(pub f64);
 
 impl ATL {
@@ -133,6 +137,7 @@ impl Display for ATL {
 
 /// Training Stress Balance
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TSB(pub f64);
 
 impl TSB {
@@ -149,6 +154,7 @@ impl Display for TSB {
 
 /// Intensity Factor
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct IF(pub f64);
 
 impl IF {
@@ -169,6 +175,7 @@ impl Display for IF {
 
 /// Variability Index
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VI(pub f64);
 
 impl VI {

@@ -13,7 +13,12 @@ fitparser = "0.6.1"
 num-integer = "0.1.45"
 prettytable-rs = "0.10.0"
 rayon = "1.8.0"
+serde = { version = "1.0.195", optional = true }
 
 [dev-dependencies]
 assertables = "7.0.1"
 proptest = "1.3.1"
+
+[features]
+default = ["serde"]
+serde = ["dep:serde"]

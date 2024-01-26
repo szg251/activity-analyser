@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 
 /// Peformance management metrics
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DailyStats {
     pub date: NaiveDate,
     pub tss: TSS,
@@ -82,6 +83,7 @@ impl DailyStats {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SortedDailyTSS(Vec<DailyTSS>);
 
 impl SortedDailyTSS {

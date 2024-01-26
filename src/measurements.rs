@@ -27,6 +27,7 @@ impl Average for i64 {
 
 /// Power data in Watts
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Power(pub i64);
 
 impl Display for Power {
@@ -59,6 +60,7 @@ impl Average for Power {
 
 /// Work data in kJ
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Add, Sub, Sum)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Work(pub f64);
 
 impl Display for Work {
@@ -81,6 +83,7 @@ impl From<Power> for Work {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct HeartRate(pub i64);
 
 /// Heart rate data in bpm
@@ -114,6 +117,7 @@ impl Average for HeartRate {
 
 /// Cadence data in rpm
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Cadence(pub i64);
 
 impl Display for Cadence {
@@ -132,6 +136,7 @@ impl TryFrom<Value> for Cadence {
 /// Speed data in m/s
 /// Default display will convert it to km/h
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Speed(pub f64);
 
 impl Display for Speed {
@@ -173,6 +178,7 @@ impl Average for Speed {
 
 /// Altitude in meters
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Altitude(pub f64);
 
 impl Display for Altitude {
@@ -190,6 +196,7 @@ impl TryFrom<Value> for Altitude {
 
 /// Altitude difference in meters
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Sub, Add, Sum)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AltitudeDiff(pub f64);
 
 impl Display for AltitudeDiff {
@@ -213,6 +220,7 @@ impl From<Altitude> for AltitudeDiff {
 
 /// Weight data in kg
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Weight(pub f64);
 
 impl Display for Weight {
