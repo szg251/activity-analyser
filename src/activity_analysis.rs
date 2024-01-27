@@ -1,9 +1,8 @@
 use crate::activity::Activity;
-use crate::athlete::MeasurementRecords;
 use crate::measurements::{AltitudeDiff, Average, HeartRate, Power, Speed, Work};
 use crate::metrics::{calc_altitude_changes, calc_normalized_power, calc_total_work, IF, TSS, VI};
 use crate::peak::Peak;
-use chrono::{DateTime, Duration, Local, NaiveDate};
+use chrono::{DateTime, Duration, Local};
 use std::collections::{HashMap, HashSet};
 
 /// Results of a full activity analysis
@@ -29,14 +28,11 @@ pub struct ActivityAnalysis {
 impl ActivityAnalysis {
     /// Analyse an activity and create an ActivityAnalysis
     pub fn from_activity(
-        measurement_records: &MeasurementRecords,
+        ftp: &Option<Power>,
+        fthr: &Option<HeartRate>,
         activity: &Activity,
         peak_durations: &HashSet<Duration>,
     ) -> Self {
-        let date: Option<NaiveDate> = activity.start_time.map(|t| t.naive_utc().into());
-        let ftp = date.and_then(|d| measurement_records.get_actual_ftp(&d));
-        let fthr = date.and_then(|d| measurement_records.get_actual_fthr(&d));
-
         let power_data_with_timestamps = activity.get_data_with_timestamps("power");
         let power_data = power_data_with_timestamps
             .iter()

@@ -92,8 +92,12 @@ fn single_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
         Duration::minutes(5),
         Duration::minutes(20),
     ]);
+
+    let date: Option<NaiveDate> = activity.start_time.map(|t| t.naive_utc().into());
+    let ftp = date.and_then(|d| measurements.get_actual_ftp(&d));
+    let fthr = date.and_then(|d| measurements.get_actual_fthr(&d));
     let activity_analysis =
-        ActivityAnalysis::from_activity(&measurements, &activity, &peak_durations);
+        ActivityAnalysis::from_activity(&ftp, &fthr, &activity, &peak_durations);
 
     let mut data_table = table![
         ["Workout name", DisplayableOption(activity.workout_name)],
@@ -258,9 +262,12 @@ fn multi_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
     let activities_with_analyses = successes
         .par_iter()
         .map(|activity| {
+            let date: Option<NaiveDate> = activity.start_time.map(|t| t.naive_utc().into());
+            let ftp = date.and_then(|d| measurements.get_actual_ftp(&d));
+            let fthr = date.and_then(|d| measurements.get_actual_fthr(&d));
             (
                 activity,
-                ActivityAnalysis::from_activity(&measurements, &activity, &peak_durations),
+                ActivityAnalysis::from_activity(&ftp, &fthr, &activity, &peak_durations),
             )
         })
         .collect::<Vec<_>>();
