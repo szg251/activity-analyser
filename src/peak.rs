@@ -4,7 +4,7 @@ use std::cmp::Ordering;
 use std::convert::identity;
 
 /// Peak of a given metric for a given amount of seconds
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Peak<T> {
     pub value: T,
     pub timestamps: TimeInterval,

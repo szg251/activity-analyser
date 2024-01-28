@@ -114,7 +114,7 @@ impl ActivityAnalysis {
 }
 
 /// Highest performance values achieved for certain time durations
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PeakPerformances {
     pub power: HashMap<Duration, Peak<Power>>,
     pub heart_rate: HashMap<Duration, Peak<HeartRate>>,
