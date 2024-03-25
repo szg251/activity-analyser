@@ -2,9 +2,8 @@ image: docker.nix-community.org/nixpkgs/cachix-flakes
 
 build:
   variables:
-    CACHIX_CACHE_NAME: mycache
+    CACHIX_CACHE_NAME: gege251
   before_script:
     - cachix use "$CACHIX_CACHE_NAME"
   script:
-    - cachix watch-exec $CACHIX_CACHE_NAME -- nix-build default.nix
-    - nix build .#checks.x86_64-linux.default -L
+    - cachix watch-exec $CACHIX_CACHE_NAME -- nix build .#checks.x86_64-linux.default -L
