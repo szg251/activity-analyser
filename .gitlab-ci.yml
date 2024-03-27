@@ -1,6 +1,7 @@
 image: docker.nix-community.org/nixpkgs/cachix-flakes
 
 build:
+  timeout: 2h
   variables:
     CACHIX_CACHE_NAME: gege251
   before_script:
