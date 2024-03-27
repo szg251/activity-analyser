@@ -1,10 +1,8 @@
-image: docker.nix-community.org/nixpkgs/cachix-flakes
+image: nixos/nix:latest
 
 build:
-  timeout: 2h
-  variables:
-    CACHIX_CACHE_NAME: gege251
   before_script:
-    - cachix use "$CACHIX_CACHE_NAME"
+    - echo "substituters = https://cache.nixos.org https://gege251.cachix.org https://nix-cache.justriding.club" > /etc/nix/nix.conf
+    - echo "trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= gege251.cachix.org-1:N7V4lwu+CJOqO4465tz0A0fGu8Z0zr9whdx3VLz/Eto= nix-cache.justriding.club:6//K7++hiz2rZtZlMIB3WlSyff1Nm0Lp5rDH68ljQaQ=" >> /etc/nix/nix.conf
   script:
-    - cachix watch-exec $CACHIX_CACHE_NAME -- nix build .#checks.x86_64-linux.default -L
+    - nix build .#checks.x86_64-linux.default -L
