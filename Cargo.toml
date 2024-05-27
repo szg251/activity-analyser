@@ -9,7 +9,7 @@ edition = "2021"
 chrono = { version = "0.4.31", features = ["clock"] }
 clap = { version = "4.4.6", features = ["derive"] }
 derive_more = "0.99.17"
-fitparser = "0.6.1"
+fitparser = "0.7.0"
 num-integer = "0.1.45"
 prettytable-rs = "0.10.0"
 rayon = "1.8.0"

@@ -183,7 +183,7 @@ pub struct Altitude(pub f64);
 
 impl Display for Altitude {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "{} m", self.0)
+        write!(f, "{:.2} m", self.0)
     }
 }
 
@@ -201,7 +201,7 @@ pub struct AltitudeDiff(pub f64);
 
 impl Display for AltitudeDiff {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "{} m", self.0)
+        write!(f, "{:.2} m", self.0)
     }
 }
 

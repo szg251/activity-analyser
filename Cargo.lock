@@ -343,9 +343,9 @@ checksum = "25cbce373ec4653f1a01a31e8a5e5ec0c622dc27ff9c4e6606eefef5cbbed4a5"
 
 [[package]]
 name = "fitparser"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c01b8defcd147fd7fa4536295e4c47ef7a592c128627fd44b3f79f0b9defda35"
+checksum = "3c57b6c1de15f92aa2846a6286eefc115637405a4298eea11a65799aa4ce4177"
 dependencies = [
  "chrono",
  "nom",

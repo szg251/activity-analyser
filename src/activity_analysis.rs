@@ -51,7 +51,7 @@ impl ActivityAnalysis {
             .map(|t| t.0)
             .collect::<Vec<_>>();
 
-        let altitude_data = activity.get_data("altitude");
+        let altitude_data = activity.get_data("enhanced_altitude");
 
         let average_power = Average::average(&power_data);
         let maximum_power = power_data.iter().max().copied();
