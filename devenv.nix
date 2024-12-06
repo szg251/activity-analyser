@@ -16,7 +16,10 @@
       enable = true;
       excludes = [ ".devenv.flake.nix" ];
     };
-    # clippy.enable = true;
+    clippy = {
+      enable = true;
+      settings.offline = false;
+    };
   };
 
   enterTest = ''cargo test'';
