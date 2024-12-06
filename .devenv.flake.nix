@@ -4,12 +4,12 @@
       version = "1.3.1";
 system = "x86_64-darwin";
 devenv_root = "/Users/gergo/Dev/activity-analyser";
-devenv_dotfile = ./.devenv;
-devenv_dotfile_string = ".devenv";
+devenv_dotfile = ./.devenv.7X3feO4qUfYT;
+devenv_dotfile_string = ".devenv.7X3feO4qUfYT";
 container_name = null;
 devenv_tmpdir = "/var/folders/xc/jfd9rvjs4152fnlhchc963sh0000gn/T/";
-devenv_runtime = "/var/folders/xc/jfd9rvjs4152fnlhchc963sh0000gn/T/devenv-4d0c59b";
-devenv_istesting = false;
+devenv_runtime = "/var/folders/xc/jfd9rvjs4152fnlhchc963sh0000gn/T/devenv-a1800e9";
+devenv_istesting = true;
 
         in {
         pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
@@ -25,12 +25,12 @@ devenv_istesting = false;
           version = "1.3.1";
 system = "x86_64-darwin";
 devenv_root = "/Users/gergo/Dev/activity-analyser";
-devenv_dotfile = ./.devenv;
-devenv_dotfile_string = ".devenv";
+devenv_dotfile = ./.devenv.7X3feO4qUfYT;
+devenv_dotfile_string = ".devenv.7X3feO4qUfYT";
 container_name = null;
 devenv_tmpdir = "/var/folders/xc/jfd9rvjs4152fnlhchc963sh0000gn/T/";
-devenv_runtime = "/var/folders/xc/jfd9rvjs4152fnlhchc963sh0000gn/T/devenv-4d0c59b";
-devenv_istesting = false;
+devenv_runtime = "/var/folders/xc/jfd9rvjs4152fnlhchc963sh0000gn/T/devenv-a1800e9";
+devenv_istesting = true;
 
             devenv =
             if builtins.pathExists (devenv_dotfile + "/devenv.json")
