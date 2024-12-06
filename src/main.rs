@@ -54,7 +54,7 @@ where
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         match &self.0 {
-            Some(x) => T::fmt(&x, f),
+            Some(x) => T::fmt(x, f),
             None => write!(f, "-"),
         }
     }
@@ -222,16 +222,17 @@ fn peaks_table(
 }
 
 fn multi_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
-    let measurements = def_measurements();
+    let measurements = &def_measurements();
 
     println!("Reading files...");
+    #[allow(clippy::type_complexity)]
     let (successes, failures): (Vec<Result<Activity, Error>>, Vec<Result<Activity, Error>>) =
         fs::read_dir(path)?
             .collect::<Vec<_>>()
             .into_par_iter()
             .map(|entry| {
                 let mut fp = fs::File::open(entry?.path())?;
-                Ok(Activity::from_reader(&mut fp)?)
+                Activity::from_reader(&mut fp)
             })
             .partition(Result::is_ok);
 
@@ -267,7 +268,7 @@ fn multi_activity(path: PathBuf, verbose: bool) -> Result<(), Error> {
             let fthr = date.and_then(|d| measurements.get_actual_fthr(&d));
             (
                 activity,
-                ActivityAnalysis::from_activity(&ftp, &fthr, &activity, &peak_durations),
+                ActivityAnalysis::from_activity(&ftp, &fthr, activity, &peak_durations),
             )
         })
         .collect::<Vec<_>>();

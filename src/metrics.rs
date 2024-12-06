@@ -29,7 +29,7 @@ impl TSS {
     }
 
     /// Calculate user specific Heart Rate Training Stress Score
-    pub fn calculate_hr_tss(fthr: &HeartRate, heart_rate_data: &Vec<HeartRate>) -> TSS {
+    pub fn calculate_hr_tss(fthr: &HeartRate, heart_rate_data: &[HeartRate]) -> TSS {
         let HeartRate(fthr) = fthr;
         let zones = (
             fthr * 73 / 100,
@@ -58,7 +58,7 @@ impl TSS {
                     acc.4 += 1;
                 } else if hr < &zones.5 {
                     acc.5 += 1;
-                } else if hr < &zones.6 {
+                } else if hr < zones.6 {
                     acc.6 += 1;
                 } else if hr < &zones.7 {
                     acc.7 += 1;
@@ -195,8 +195,8 @@ impl Display for VI {
 }
 
 /// Calculate total work
-pub fn calc_total_work(power_data: &Vec<Power>) -> Work {
-    power_data.into_iter().map(|power| Work::from(*power)).sum()
+pub fn calc_total_work(power_data: &[Power]) -> Work {
+    power_data.iter().map(|power| Work::from(*power)).sum()
 }
 
 /// Calculate Normalized Power
@@ -231,7 +231,7 @@ where
 
 /// Calculate altitude gain and altitude loss of an activity
 pub fn calc_altitude_changes(
-    altitude_data: &Vec<Altitude>,
+    altitude_data: &[Altitude],
 ) -> (Option<AltitudeDiff>, Option<AltitudeDiff>) {
     let init: (
         Option<AltitudeDiff>,
