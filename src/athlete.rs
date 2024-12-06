@@ -16,17 +16,17 @@ impl MeasurementRecords {
     }
 
     /// Get the FTP of the athlete for a given date
-    pub fn get_actual_ftp(self: &Self, date: &NaiveDate) -> Option<Power> {
+    pub fn get_actual_ftp(&self, date: &NaiveDate) -> Option<Power> {
         self.get_actual(date)
     }
 
     /// Get the FTHr of the athlete for a given date
-    pub fn get_actual_fthr(self: &Self, date: &NaiveDate) -> Option<HeartRate> {
+    pub fn get_actual_fthr(&self, date: &NaiveDate) -> Option<HeartRate> {
         self.get_actual(date)
     }
 
     /// Get some measurement of the athlete for a given date with a getter
-    fn get_actual<T>(self: &Self, date: &NaiveDate) -> Option<T>
+    fn get_actual<T>(&self, date: &NaiveDate) -> Option<T>
     where
         T: TryFrom<MeasurementRecord>,
     {

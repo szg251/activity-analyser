@@ -1,7 +1,6 @@
 use crate::measurements::Average;
 use chrono::{DateTime, Duration, Local};
 use std::cmp::Ordering;
-use std::convert::identity;
 
 /// Peak of a given metric for a given amount of seconds
 #[derive(Debug, Clone)]
@@ -48,13 +47,12 @@ where
 {
     /// Find a peak performance of a given measurement of n seconds
     pub fn from_measurement_records(
-        measurements: &Vec<(T, &DateTime<Local>)>,
+        measurements: &[(T, &DateTime<Local>)],
         duration: Duration,
     ) -> Option<Self> {
         let windows = measurements.windows(duration.num_seconds() as usize);
         windows
-            .map(|window| get_peak(window, duration))
-            .filter_map(identity)
+            .filter_map(|window| get_peak(window, duration))
             .max()
     }
 }

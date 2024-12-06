@@ -68,7 +68,7 @@ impl ActivityAnalysis {
         let total_work = calc_total_work(&power_data);
         let normalized_power = calc_normalized_power(&power_data);
         let intensity_factor = match (ftp, normalized_power) {
-            (Some(ftp), Some(normalized_power)) => Some(IF::calculate(&ftp, &normalized_power)),
+            (Some(ftp), Some(normalized_power)) => Some(IF::calculate(ftp, &normalized_power)),
             _ => None,
         };
         let variability_index = match (normalized_power, average_power) {
@@ -79,7 +79,7 @@ impl ActivityAnalysis {
         };
         let tss = match (ftp, &activity.duration, &normalized_power) {
             (Some(ftp), Some(duration), Some(normalized_power)) => {
-                Some(TSS::calculate(&ftp, &duration, &normalized_power))
+                Some(TSS::calculate(ftp, duration, normalized_power))
             }
             _ => None,
         };
@@ -90,7 +90,7 @@ impl ActivityAnalysis {
             &power_data_with_timestamps,
             &heart_rate_data_with_timestamps,
             &speed_data_with_timestamps,
-            &peak_durations,
+            peak_durations,
         );
 
         Self {
@@ -124,21 +124,21 @@ pub struct PeakPerformances {
 impl PeakPerformances {
     /// Calculate peak performances for multiple measurement types
     pub fn from_data(
-        power_data: &Vec<(Power, &DateTime<Local>)>,
-        heart_rate_data: &Vec<(HeartRate, &DateTime<Local>)>,
-        speed_data: &Vec<(Speed, &DateTime<Local>)>,
+        power_data: &[(Power, &DateTime<Local>)],
+        heart_rate_data: &[(HeartRate, &DateTime<Local>)],
+        speed_data: &[(Speed, &DateTime<Local>)],
         peak_durations: &HashSet<Duration>,
     ) -> Self {
         Self {
-            power: Self::get_one(power_data, &peak_durations),
-            heart_rate: Self::get_one(heart_rate_data, &peak_durations),
-            speed: Self::get_one(speed_data, &peak_durations),
+            power: Self::get_one(power_data, peak_durations),
+            heart_rate: Self::get_one(heart_rate_data, peak_durations),
+            speed: Self::get_one(speed_data, peak_durations),
         }
     }
 
     /// Calculate performances for a specific measurment type
     fn get_one<T>(
-        data_with_timestamps: &Vec<(T, &DateTime<Local>)>,
+        data_with_timestamps: &[(T, &DateTime<Local>)],
         peak_durations: &HashSet<Duration>,
     ) -> HashMap<Duration, Peak<T>>
     where
@@ -148,7 +148,7 @@ impl PeakPerformances {
             .iter()
             .filter_map(|duration| {
                 Some((
-                    duration.clone(),
+                    *duration,
                     Peak::from_measurement_records(data_with_timestamps, *duration)?,
                 ))
             })

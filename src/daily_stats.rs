@@ -24,11 +24,11 @@ impl DailyStats {
         let DailyTSS(date, tss) = daily_tss;
 
         DailyStats {
-            date: date.clone(),
+            date: *date,
             ctl,
             atl,
             tsb,
-            tss: tss.clone(),
+            tss: *tss,
         }
     }
 
@@ -65,7 +65,7 @@ impl DailyStats {
             .chain(ending_days)
             .enumerate()
             .scan(init, |yesterdays_stats, (i, daily_tss)| {
-                let next_daily_stats = DailyStats::calc_next(&yesterdays_stats, &daily_tss);
+                let next_daily_stats = DailyStats::calc_next(yesterdays_stats, &daily_tss);
                 *yesterdays_stats = next_daily_stats.clone();
 
                 if i < length + 1
@@ -95,7 +95,7 @@ impl SortedDailyTSS {
     /// - fill gaps with 0 TSS days
     /// - fill beginning of the list with 0 TSS days, if last known stats exist
     pub fn from_unsorted(
-        unsorted: &Vec<DailyTSS>,
+        unsorted: &[DailyTSS],
         last_known_stats: Option<&DailyStats>,
     ) -> SortedDailyTSS {
         // In order to fill gap between the last known stat and the first daily tss record,
@@ -125,13 +125,13 @@ impl SortedDailyTSS {
                 acc
             })
             .iter()
-            .map(|(date, tss)| DailyTSS(date.clone(), tss.clone()))
+            .map(|(date, tss)| DailyTSS(*date, *tss))
             // Filling gaps
             .fold(Vec::with_capacity(unsorted.len()), |mut acc, daily_tss| {
                 match acc.last() {
                     Some(DailyTSS(last_date, _)) => {
                         let diff = (daily_tss.0 - *last_date).num_days() as u64;
-                        let last_date = last_date.clone();
+                        let last_date = *last_date;
 
                         (1..diff).for_each(|days| {
                             acc.push(DailyTSS(last_date + Days::new(days), TSS(0)));
