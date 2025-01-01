@@ -2,7 +2,7 @@
 {
   packages = [
     pkgs.cargo-watch
-    pkgs.cargo-edit
+    pkgs.inferno
   ];
 
   languages.rust = {
