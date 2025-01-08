@@ -135,7 +135,7 @@ impl TryFrom<Value> for Cadence {
 
 /// Speed data in m/s
 /// Default display will convert it to km/h
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Speed(pub f64);
 
@@ -147,12 +147,7 @@ impl Display for Speed {
 
 impl Eq for Speed {}
 
-impl PartialOrd for Speed {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
+#[allow(clippy::derive_ord_xor_partial_ord)]
 impl Ord for Speed {
     /// Boldly we claim that floats are always comparable.
     fn cmp(&self, other: &Self) -> Ordering {
