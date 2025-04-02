@@ -2,7 +2,7 @@
   inputs =
     let
       version = "1.3.1";
-system = "x86_64-darwin";
+system = "aarch64-darwin";
 devenv_root = "/Users/gergo/Dev/activity-analyser";
 devenv_dotfile = ./.devenv;
 devenv_dotfile_string = ".devenv";
@@ -23,7 +23,7 @@ devenv_istesting = false;
       outputs = { nixpkgs, ... }@inputs:
         let
           version = "1.3.1";
-system = "x86_64-darwin";
+system = "aarch64-darwin";
 devenv_root = "/Users/gergo/Dev/activity-analyser";
 devenv_dotfile = ./.devenv;
 devenv_dotfile_string = ".devenv";
