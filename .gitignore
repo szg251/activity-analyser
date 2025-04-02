@@ -4,3 +4,4 @@
 .devenv
 proptest-regressions
 .DS_Store
+.pre-commit-config.yaml
